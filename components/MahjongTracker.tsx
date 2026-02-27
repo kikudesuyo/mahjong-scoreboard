@@ -1,18 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GameState, INITIAL_STATE, validateInvariant } from "@/lib/types";
+import { GameState, INITIAL_STATE, validateInvariant, HandRecord, HandResult } from "@/lib/types";
 import PlayerCard from "./PlayerCard";
 import ScoreEntryModal from "./ScoreEntryModal";
 import RyuukyokuModal from "./RyuukyokuModal";
 import ManualAdjustmentModal from "./ManualAdjustmentModal";
+import StatsView from "./StatsView";
 
 export default function MahjongTracker() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [history, setHistory] = useState<GameState[]>([]);
+  const [handRecords, setHandRecords] = useState<HandRecord[]>([]);
   const [currentState, setCurrentState] = useState<GameState>(INITIAL_STATE);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [setupNames, setSetupNames] = useState(["", "", ""]);
+  const [activeTab, setActiveTab] = useState<"scoreboard" | "stats">("scoreboard");
   
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
   const [isRyuukyokuModalOpen, setIsRyuukyokuModalOpen] = useState(false);
@@ -36,6 +39,14 @@ export default function MahjongTracker() {
         console.error("Failed to parse saved history", e);
       }
     }
+    const savedHandRecords = localStorage.getItem("mahjong_hand_records");
+    if (savedHandRecords) {
+      try {
+        setHandRecords(JSON.parse(savedHandRecords));
+      } catch (e) {
+        console.error("Failed to parse saved hand records", e);
+      }
+    }
     const savedSetup = localStorage.getItem("mahjong_setup");
     if (savedSetup === "true") {
       setIsSetupComplete(true);
@@ -48,11 +59,12 @@ export default function MahjongTracker() {
     if (isLoaded) {
       localStorage.setItem("mahjong_state", JSON.stringify(currentState));
       localStorage.setItem("mahjong_history", JSON.stringify(history));
+      localStorage.setItem("mahjong_hand_records", JSON.stringify(handRecords));
       localStorage.setItem("mahjong_setup", isSetupComplete.toString());
     }
-  }, [currentState, history, isLoaded, isSetupComplete]);
+  }, [currentState, history, handRecords, isLoaded, isSetupComplete]);
 
-  const applyStateUpdate = (newState: GameState) => {
+  const applyStateUpdate = (newState: GameState, result?: HandResult) => {
     if (!validateInvariant(newState)) {
       console.error("エラー: 合計点数が105,000点になりません。");
       alert("エラー: 合計点数が105,000点になりません。");
@@ -65,6 +77,17 @@ export default function MahjongTracker() {
 
     setHistory((prev) => [...prev, currentState]);
     setCurrentState(finalState);
+
+    if (result) {
+      const record: HandRecord = {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        preState: currentState,
+        postState: finalState,
+        result: result
+      };
+      setHandRecords((prev) => [...prev, record]);
+    }
   };
 
   const undo = () => {
@@ -72,11 +95,13 @@ export default function MahjongTracker() {
     const previousState = history[history.length - 1];
     setCurrentState(previousState);
     setHistory((prev) => prev.slice(0, -1));
+    setHandRecords((prev) => prev.slice(0, -1));
   };
   
   const resetGame = () => {
     if (confirm("新しくゲームを始めますか？現在のスコアはリセットされます。")) {
       setHistory([]);
+      setHandRecords([]);
       setCurrentState({
         ...INITIAL_STATE,
         players: currentState.players.map(p => ({ ...p, score: 35000, isRiichi: false })) // Keep names, reset scores & riichi
@@ -87,6 +112,7 @@ export default function MahjongTracker() {
   const clearCache = () => {
     if (confirm("全てのデータ（プレイヤー名含む）を完全に初期化しますか？")) {
       setHistory([]);
+      setHandRecords([]);
       setCurrentState(INITIAL_STATE);
       setIsSetupComplete(false);
       setSetupNames(["", "", ""]);
@@ -205,87 +231,109 @@ export default function MahjongTracker() {
 
   return (
     <div className="space-y-6">
-      {/* Table Center / Game Info */}
-      <div className="bg-mahjong-green/50 dark:bg-mahjong-green/20 rounded-2xl border border-mahjong-green dark:border-mahjong-green/30 p-8 flex flex-col items-center justify-center relative shadow-inner">
-        <div className="grid grid-cols-2 gap-12 w-full text-center">
-          <div className="relative group">
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 font-black uppercase tracking-[0.2em] mb-4">本場</p>
-            <div className="flex items-center justify-center gap-6">
-              <button 
-                onClick={() => handleUpdateHonba(-1)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/50 dark:bg-neutral-800/50 text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xl"
-                aria-label="本場を減らす"
-              >
-                −
-              </button>
-              <p className="text-6xl font-black text-neutral-800 dark:text-neutral-100 min-w-[1ch] tabular-nums">{currentState.honba}</p>
-              <button 
-                onClick={() => handleUpdateHonba(1)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/50 dark:bg-neutral-800/50 text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xl"
-                aria-label="本場を増やす"
-              >
-                +
-              </button>
+      {/* Tab Navigation */}
+      <div className="flex p-1 bg-neutral-100 dark:bg-neutral-900/50 rounded-2xl w-fit mx-auto border border-neutral-200 dark:border-neutral-800">
+        <button 
+          onClick={() => setActiveTab("scoreboard")}
+          className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all ${activeTab === "scoreboard" ? "bg-white dark:bg-neutral-800 text-orange-600 shadow-sm" : "text-neutral-400 hover:text-neutral-600"}`}
+        >
+          スコアボード
+        </button>
+        <button 
+          onClick={() => setActiveTab("stats")}
+          className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all ${activeTab === "stats" ? "bg-white dark:bg-neutral-800 text-orange-600 shadow-sm" : "text-neutral-400 hover:text-neutral-600"}`}
+        >
+          記録・スタッツ
+        </button>
+      </div>
+
+      {activeTab === "stats" ? (
+        <StatsView handRecords={handRecords} />
+      ) : (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Table Center / Game Info */}
+          <div className="bg-mahjong-green/50 dark:bg-mahjong-green/20 rounded-2xl border border-mahjong-green dark:border-mahjong-green/30 p-8 flex flex-col items-center justify-center relative shadow-inner">
+            <div className="grid grid-cols-2 gap-12 w-full text-center">
+              <div className="relative group">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 font-black uppercase tracking-[0.2em] mb-4">本場</p>
+                <div className="flex items-center justify-center gap-6">
+                  <button 
+                    onClick={() => handleUpdateHonba(-1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white/50 dark:bg-neutral-800/50 text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xl"
+                    aria-label="本場を減らす"
+                  >
+                    −
+                  </button>
+                  <p className="text-6xl font-black text-neutral-800 dark:text-neutral-100 min-w-[1ch] tabular-nums">{currentState.honba}</p>
+                  <button 
+                    onClick={() => handleUpdateHonba(1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white/50 dark:bg-neutral-800/50 text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xl"
+                    aria-label="本場を増やす"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="relative">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 font-black uppercase tracking-[0.2em] mb-4">供託</p>
+                <p className="text-6xl font-black text-neutral-800 dark:text-neutral-100 tabular-nums">{currentState.kyotaku.toLocaleString()}</p>
+              </div>
             </div>
           </div>
-          <div className="relative">
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 font-black uppercase tracking-[0.2em] mb-4">供託</p>
-            <p className="text-6xl font-black text-neutral-800 dark:text-neutral-100 tabular-nums">{currentState.kyotaku.toLocaleString()}</p>
+
+          {/* Players */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {currentState.players.map((player) => (
+              <PlayerCard 
+                key={player.id} 
+                player={player} 
+                onRiichi={() => handleRiichi(player.id)} 
+                onSetDealer={() => handleSetDealer(player.id)}
+                onChangeName={(name) => handleNameChange(player.id, name)} 
+                canRiichi={player.isRiichi ? true : player.score >= 1000} 
+              />
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
+            <button 
+              onClick={() => setIsScoreModalOpen(true)}
+              className="px-6 py-3.5 bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 font-bold rounded-xl transition-all active:scale-95 shadow-sm"
+            >
+              和了
+            </button>
+            <button 
+              onClick={() => setIsRyuukyokuModalOpen(true)}
+              className="px-6 py-3.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl transition-all active:scale-95"
+            >
+              流局
+            </button>
+            <button 
+              onClick={() => setIsManualModalOpen(true)}
+              className="px-6 py-3.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl transition-all active:scale-95"
+            >
+              修正
+            </button>
+            <button 
+              onClick={undo}
+              disabled={history.length === 0}
+              className="px-6 py-3.5 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-400 dark:text-neutral-600 font-bold rounded-xl border border-transparent disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              戻す
+            </button>
+          </div>
+          
+          <div className="flex justify-center pt-8 gap-8">
+            <button onClick={resetGame} className="text-[20px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">
+              点数リセット
+            </button>
+            <button onClick={clearCache} className="text-[20px] font-black uppercase tracking-widest text-red-400/50 hover:text-red-500 transition-colors">
+              ゲーム終了
+            </button>
           </div>
         </div>
-      </div>
-
-      {/* Players */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {currentState.players.map((player) => (
-          <PlayerCard 
-            key={player.id} 
-            player={player} 
-            onRiichi={() => handleRiichi(player.id)} 
-            onSetDealer={() => handleSetDealer(player.id)}
-            onChangeName={(name) => handleNameChange(player.id, name)} 
-            canRiichi={player.isRiichi ? true : player.score >= 1000} 
-          />
-        ))}
-      </div>
-
-      {/* Actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
-        <button 
-          onClick={() => setIsScoreModalOpen(true)}
-          className="px-6 py-3.5 bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 font-bold rounded-xl transition-all active:scale-95 shadow-sm"
-        >
-          和了
-        </button>
-        <button 
-          onClick={() => setIsRyuukyokuModalOpen(true)}
-          className="px-6 py-3.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl transition-all active:scale-95"
-        >
-          流局
-        </button>
-        <button 
-          onClick={() => setIsManualModalOpen(true)}
-          className="px-6 py-3.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl transition-all active:scale-95"
-        >
-          修正
-        </button>
-        <button 
-          onClick={undo}
-          disabled={history.length === 0}
-          className="px-6 py-3.5 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-400 dark:text-neutral-600 font-bold rounded-xl border border-transparent disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-        >
-          戻す
-        </button>
-      </div>
-      
-      <div className="flex justify-center pt-8 gap-8">
-        <button onClick={resetGame} className="text-[20px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">
-          点数リセット
-        </button>
-        <button onClick={clearCache} className="text-[20px] font-black uppercase tracking-widest text-red-400/50 hover:text-red-500 transition-colors">
-          ゲーム終了
-        </button>
-      </div>
+      )}
 
       <ScoreEntryModal 
         isOpen={isScoreModalOpen} 

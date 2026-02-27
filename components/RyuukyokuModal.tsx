@@ -6,7 +6,7 @@ interface RyuukyokuModalProps {
   isOpen: boolean;
   onClose: () => void;
   gameState: GameState;
-  onApply: (newState: GameState) => void;
+  onApply: (newState: GameState, result: any) => void;
 }
 
 export default function RyuukyokuModal({ isOpen, onClose, gameState, onApply }: RyuukyokuModalProps) {
@@ -38,11 +38,23 @@ export default function RyuukyokuModal({ isOpen, onClose, gameState, onApply }: 
       });
     }
     
-    // Honba increases by 1 for any draw
+    // Record point differences
+    const pointDiffs: Record<number, number> = {};
+    newPlayers.forEach(p => {
+      const oldPlayer = gameState.players.find(op => op.id === p.id);
+      if (oldPlayer) {
+        pointDiffs[p.id] = p.score - oldPlayer.score;
+      }
+    });
+
     onApply({
       players: newPlayers,
       honba: gameState.honba + 1,
       kyotaku: gameState.kyotaku // Kyotaku carries over
+    }, {
+      type: "ryuukyoku",
+      winnerIds: tenpaiPlayers,
+      points: pointDiffs
     });
 
     setTenpaiPlayers([]);

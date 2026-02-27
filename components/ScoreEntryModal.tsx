@@ -8,7 +8,7 @@ interface ScoreEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
   gameState: GameState;
-  onApply: (newState: GameState) => void;
+  onApply: (newState: GameState, result: any) => void;
 }
 
 export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }: ScoreEntryModalProps) {
@@ -185,10 +185,39 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
       );
     }
 
+    // Record point differences
+    const pointDiffs: Record<number, number> = {};
+    newPlayers.forEach(p => {
+      const oldPlayer = gameState.players.find(op => op.id === p.id);
+      if (oldPlayer) {
+        pointDiffs[p.id] = p.score - oldPlayer.score;
+      }
+    });
+
+    // Base Agari Points (excluding Honba and Kyotaku)
+    const baseAgariPoints: Record<number, number> = {};
+    if (winType === "tsumo") {
+      const winnerId = winnerIds[0];
+      baseAgariPoints[winnerId] = Object.values(tsumoPayments).reduce((sum, val) => sum + val, 0);
+    } else {
+      winnerIds.forEach(wid => {
+        baseAgariPoints[wid] = ronPoints[wid] || 0;
+      });
+    }
+
     onApply({
       players: newPlayers,
       honba: newHonba,
       kyotaku: newKyotaku,
+    }, {
+      type: winType as "tsumo" | "ron",
+      winnerIds,
+      loserId,
+      han: selectedHan,
+      fu: selectedFu,
+      isOyaWin: isOyaWinner,
+      points: pointDiffs,
+      basePoints: baseAgariPoints
     });
     
     // Reset modal state

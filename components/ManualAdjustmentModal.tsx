@@ -7,7 +7,7 @@ interface ManualAdjustmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   gameState: GameState;
-  onApply: (newState: GameState) => void;
+  onApply: (newState: GameState, result: any) => void;
 }
 
 export default function ManualAdjustmentModal({ isOpen, onClose, gameState, onApply }: ManualAdjustmentModalProps) {
@@ -33,6 +33,9 @@ export default function ManualAdjustmentModal({ isOpen, onClose, gameState, onAp
       players: newPlayers,
       honba: honba,
       kyotaku: kyotaku
+    }, {
+      type: "manual",
+      points: {}
     });
     
     onClose();
