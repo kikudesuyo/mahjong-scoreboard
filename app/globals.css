@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@import "tailwindcss";
+
+:root {
+  --background: #fdfcf8; /* Light Ivory */
+  --foreground: #2d3436;
+  --mahjong-green: #e1ede8;
+  --mahjong-tile: #ffffff;
+  --mahjong-accent: #b28e67; /* Soft Gold/Wood */
+  --mahjong-red: #d63031;
+  --mahjong-blue: #0984e3;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-mahjong-green: var(--mahjong-green);
+  --color-mahjong-tile: var(--mahjong-tile);
+  --color-mahjong-accent: var(--mahjong-accent);
+  --color-mahjong-red: var(--mahjong-red);
+  --color-mahjong-blue: var(--mahjong-blue);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1a2a23; /* Dark Muted Forest Green */
+    --foreground: #e1ede8;
+    --mahjong-green: #2d4a3e;
+    --mahjong-tile: #263c33;
+    --mahjong-accent: #a88d6d;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
+  transition: background-color 0.3s ease;
+}
