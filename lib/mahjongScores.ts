@@ -9,7 +9,7 @@ export interface ScoreData {
   };
 }
 
-// Fu keys: 20, 30, 40, 50, 60, 70
+// Fu keys: 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110
 // Han keys: 1, 2, 3, 4
 export const scoresTable: Record<WinRole, Record<number, Record<number, ScoreData>>> = {
   // Ko entries (when a non-dealer wins)
@@ -34,25 +34,20 @@ export const scoresTable: Record<WinRole, Record<number, Record<number, ScoreDat
       1: { ron: 1300, tsumo: { ko: 400, oya: 700 } },
       2: { ron: 2600, tsumo: { ko: 700, oya: 1300 } },
       3: { ron: 5200, tsumo: { ko: 1300, oya: 2600 } },
-      4: { ron: 8000, tsumo: { ko: 2000, oya: 4000 } },
     },
     50: {
       1: { ron: 1600, tsumo: { ko: 400, oya: 800 } },
       2: { ron: 3200, tsumo: { ko: 800, oya: 1600 } },
       3: { ron: 6400, tsumo: { ko: 1600, oya: 3200 } },
-      4: { ron: 8000, tsumo: { ko: 2000, oya: 4000 } },
     },
     60: {
       1: { ron: 2000, tsumo: { ko: 500, oya: 1000 } },
       2: { ron: 3900, tsumo: { ko: 1000, oya: 2000 } },
       3: { ron: 7700, tsumo: { ko: 2000, oya: 3900 } },
-      4: { ron: 8000, tsumo: { ko: 2000, oya: 4000 } },
     },
     70: {
       1: { ron: 2300, tsumo: { ko: 600, oya: 1200 } },
       2: { ron: 4500, tsumo: { ko: 1200, oya: 2300 } },
-      3: { ron: 8000, tsumo: { ko: 2000, oya: 4000 } },
-      4: { ron: 8000, tsumo: { ko: 2000, oya: 4000 } },
     },
     80: {
       1: { ron: 2600, tsumo: { ko: 700, oya: 1300 } },
@@ -67,7 +62,7 @@ export const scoresTable: Record<WinRole, Record<number, Record<number, ScoreDat
       2: { ron: 6400, tsumo: { ko: 1600, oya: 3200 } },
     },
     110: {
-      1: { ron: 3600 },
+      1: { ron: 3600, tsumo: { ko: 900, oya: 1800 } },
       2: { ron: 7100, tsumo: { ko: 1800, oya: 3600 } },
     },
   },
@@ -93,25 +88,20 @@ export const scoresTable: Record<WinRole, Record<number, Record<number, ScoreDat
       1: { ron: 2000, tsumo: { all: 700 } },
       2: { ron: 3900, tsumo: { all: 1300 } },
       3: { ron: 7700, tsumo: { all: 2600 } },
-      4: { ron: 12000, tsumo: { all: 4000 } },
     },
     50: {
       1: { ron: 2400, tsumo: { all: 800 } },
       2: { ron: 4800, tsumo: { all: 1600 } },
       3: { ron: 9600, tsumo: { all: 3200 } },
-      4: { ron: 12000, tsumo: { all: 4000 } },
     },
     60: {
       1: { ron: 2900, tsumo: { all: 1000 } },
       2: { ron: 5800, tsumo: { all: 2000 } },
       3: { ron: 11600, tsumo: { all: 3900 } },
-      4: { ron: 12000, tsumo: { all: 4000 } },
     },
     70: {
       1: { ron: 3400, tsumo: { all: 1200 } },
       2: { ron: 6800, tsumo: { all: 2300 } },
-      3: { ron: 12000, tsumo: { all: 4000 } },
-      4: { ron: 12000, tsumo: { all: 4000 } },
     },
     80: {
       1: { ron: 3900, tsumo: { all: 1300 } },
@@ -126,7 +116,7 @@ export const scoresTable: Record<WinRole, Record<number, Record<number, ScoreDat
       2: { ron: 9600, tsumo: { all: 3200 } },
     },
     110: {
-      1: { ron: 5300 },
+      1: { ron: 5300, tsumo: { all: 1800 } },
       2: { ron: 10600, tsumo: { all: 3600 } },
     },
   },

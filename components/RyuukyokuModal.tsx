@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { GameState } from "@/lib/types";
+import { GameState, INITIAL_STATE } from "@/lib/types";
+import { RYUUKYOKU_TOTAL_POINTS } from "@/lib/constants";
 import Modal from "./Modal";
 
 interface RyuukyokuModalProps {
@@ -11,7 +12,7 @@ interface RyuukyokuModalProps {
 
 export default function RyuukyokuModal({ isOpen, onClose, gameState, onApply }: RyuukyokuModalProps) {
   const [tenpaiPlayers, setTenpaiPlayers] = useState<number[]>([]);
-  const RYUUKYOKU_POINTS = 2000; // Total penalty points paid in 3-player mahjong
+  const RYUUKYOKU_POINTS = RYUUKYOKU_TOTAL_POINTS; // Total penalty points paid in 3-player mahjong
 
   const toggleTenpai = (id: number) => {
     setTenpaiPlayers(prev => 
@@ -50,7 +51,8 @@ export default function RyuukyokuModal({ isOpen, onClose, gameState, onApply }: 
     onApply({
       players: newPlayers,
       honba: gameState.honba + 1,
-      kyotaku: gameState.kyotaku // Kyotaku carries over
+      kyotaku: gameState.kyotaku, // Kyotaku carries over
+      rules: gameState.rules || INITIAL_STATE.rules
     }, {
       type: "ryuukyoku",
       winnerIds: tenpaiPlayers,
@@ -66,7 +68,7 @@ export default function RyuukyokuModal({ isOpen, onClose, gameState, onApply }: 
       <div className="space-y-6">
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           テンパイしているプレイヤーを選択してください。<br/>
-          （※ノーテン罰符の合計は {RYUUKYOKU_POINTS} 点です。本場は1つ追加され、供託はそのまま残ります。）
+          （※本場は1つ追加され、供託はそのまま残ります。）
         </p>
 
         <div className="space-y-3">
