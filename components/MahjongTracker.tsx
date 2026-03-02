@@ -153,7 +153,8 @@ export default function MahjongTracker() {
       return;
     }
 
-    if (player.score < 1000) return; // Cannot riichi if less than 1000 points
+    const canDeclare = currentState.rules.hasHakoshita ? player.score >= 1000 : true;
+    if (!player.isRiichi && !canDeclare) return;
     
     const newPlayers = currentState.players.map((p) => 
       p.id === playerId ? { ...p, score: p.score - 1000, isRiichi: true } : p
@@ -372,7 +373,7 @@ export default function MahjongTracker() {
                 onRiichi={() => handleRiichi(player.id)} 
                 onSetDealer={() => handleSetDealer(player.id)}
                 onChangeName={(name) => handleNameChange(player.id, name)} 
-                canRiichi={player.isRiichi ? true : player.score >= 1000} 
+                canRiichi={player.isRiichi ? true : (currentState.rules.hasHakoshita ? player.score >= 1000 : true)} 
               />
             ))}
           </div>

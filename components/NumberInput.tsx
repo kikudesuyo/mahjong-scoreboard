@@ -84,7 +84,7 @@ export default function NumberInput({
       </button>
       <input 
         type="number"
-        value={value || ""}
+        value={value ?? ""}
         onChange={(e) => onChange(parseInt(e.target.value) || 0)}
         onWheel={(e) => (e.target as HTMLInputElement).blur()}
         placeholder={placeholder}
