@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { GameState, INITIAL_STATE, validateInvariant, HandRecord, HandResult } from "@/lib/types";
-import { STARTING_SCORE, TSUMIBO_OPTIONS } from "@/lib/constants";
+import { STARTING_SCORE_3P, STARTING_SCORE_4P, TSUMIBO_OPTIONS_MAP, PLAYER_COUNT_OPTIONS } from "@/lib/constants";
 import PlayerCard from "./PlayerCard";
 import ScoreEntryModal from "./ScoreEntryModal";
 import RyuukyokuModal from "./RyuukyokuModal";
@@ -110,9 +110,11 @@ export default function MahjongTracker() {
     if (confirm("新しくゲームを始めますか？現在のスコアはリセットされます。")) {
       setHistory([]);
       setHandRecords([]);
+      const is4P = currentState.rules.playerCount === 4;
+      const startScore = is4P ? STARTING_SCORE_4P : STARTING_SCORE_3P;
       setCurrentState({
         ...INITIAL_STATE,
-        players: currentState.players.map(p => ({ ...p, score: STARTING_SCORE, isRiichi: false })), // Keep names, reset scores & riichi
+        players: currentState.players.map(p => ({ ...p, score: startScore, isRiichi: false })), // Keep names, reset scores & riichi
         rules: currentState.rules // Keep rules
       });
     }
@@ -195,11 +197,17 @@ export default function MahjongTracker() {
   };
 
   const completeSetup = () => {
+    const is4P = setupRules.playerCount === 4;
+    const startScore = is4P ? STARTING_SCORE_4P : STARTING_SCORE_3P;
+    
     // Apply setup names, using defaults if empty
-    const newPlayers = currentState.players.map((p, i) => ({
-      ...p,
-      name: setupNames[i].trim() || `プレイヤー${i + 1}`
+    const newPlayers = Array.from({ length: setupRules.playerCount }).map((_, i) => ({
+      id: i + 1,
+      name: setupNames[i]?.trim() || `プレイヤー${i + 1}`,
+      score: startScore,
+      isDealer: i === 0
     }));
+    
     setCurrentState({ 
       ...currentState, 
       players: newPlayers,
@@ -215,54 +223,83 @@ export default function MahjongTracker() {
   if (!isSetupComplete) {
     return (
       <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-8 max-w-md mx-auto">
-        <h2 className="text-2xl font-black mb-6 text-center text-orange-600">プレイヤー登録</h2>
-        <p className="text-sm text-neutral-500 mb-8 text-center">対局する3人の名前を入力してください（後から変更も可能です）</p>
+        <h2 className="text-2xl font-black mb-6 text-center text-orange-600">新規ゲーム設定</h2>
+        <p className="text-sm text-neutral-500 mb-8 text-center">人数とルールを選択し、プレイヤー名を入力してください</p>
         
-        <div className="space-y-6">
-          {setupNames.map((name, i) => (
-            <div key={i}>
-              <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">プレイヤー {i + 1}</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => handleSetupNameChange(i, e.target.value)}
-                placeholder={`（入力なしで「プレイヤー${i + 1}」になります）`}
-                className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-3 font-bold text-lg focus:ring-2 focus:ring-orange-500 outline-none transition-all shadow-sm"
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 pt-8 border-t border-neutral-100 dark:border-neutral-700 space-y-6">
-          <h3 className="text-lg font-black text-neutral-800 dark:text-neutral-200">ルール設定</h3>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-bold text-neutral-700 dark:text-neutral-300">ハコシタ終了</p>
-              <p className="text-xs text-neutral-500">0点未満で対局を終了します</p>
-            </div>
-            <button 
-              onClick={() => setSetupRules(prev => ({ ...prev, hasHakoshita: !prev.hasHakoshita }))}
-              className={`w-14 h-8 rounded-full transition-all relative ${setupRules.hasHakoshita ? 'bg-orange-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
-            >
-              <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${setupRules.hasHakoshita ? 'left-7' : 'left-1'}`} />
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            <p className="font-bold text-neutral-700 dark:text-neutral-300 text-sm">積み棒の点数</p>
-            <div className="grid grid-cols-3 gap-2">
-              {TSUMIBO_OPTIONS.map(val => (
+        <div className="space-y-8">
+          <section className="space-y-3">
+            <p className="font-bold text-neutral-700 dark:text-neutral-300 text-sm">1. 人数を選択</p>
+            <div className="grid grid-cols-2 gap-2">
+              {PLAYER_COUNT_OPTIONS.map(count => (
                 <button
-                  key={val}
-                  onClick={() => setSetupRules(prev => ({ ...prev, tsumiboPoints: val }))}
-                  className={`py-2 text-sm font-bold rounded-xl border transition-all ${setupRules.tsumiboPoints === val ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-500 text-orange-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-400'}`}
+                  key={count}
+                  onClick={() => {
+                    const newCount = count;
+                    setSetupRules(prev => ({ 
+                      ...prev, 
+                      playerCount: newCount,
+                      tsumiboPoints: TSUMIBO_OPTIONS_MAP[newCount][0]
+                    }));
+                    // Ensure setupNames has enough entries
+                    if (setupNames.length < newCount) {
+                      setSetupNames([...setupNames, ...Array(newCount - setupNames.length).fill("")]);
+                    }
+                  }}
+                  className={`py-3 text-sm font-bold rounded-xl border transition-all ${setupRules.playerCount === count ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-500 text-orange-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-400'}`}
                 >
-                  {val === 200 ? '通常 (200)' : `${val}点`}
+                  {count}人麻雀
                 </button>
               ))}
             </div>
-          </div>
+          </section>
+
+          <section className="space-y-4">
+            <p className="font-bold text-neutral-700 dark:text-neutral-300 text-sm">2. プレイヤー名を入力</p>
+            {Array.from({ length: setupRules.playerCount }).map((_, i) => (
+              <div key={i}>
+                <label className="block text-xs font-bold text-neutral-500 mb-1.5 uppercase tracking-wider">プレイヤー {i + 1}</label>
+                <input
+                  type="text"
+                  value={setupNames[i] || ""}
+                  onChange={(e) => handleSetupNameChange(i, e.target.value)}
+                  placeholder={`（入力なしで「プレイヤー${i + 1}」になります）`}
+                  className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-3 font-bold text-base focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                />
+              </div>
+            ))}
+          </section>
+
+          <section className="pt-8 border-t border-neutral-100 dark:border-neutral-700 space-y-6">
+            <h3 className="text-lg font-black text-neutral-800 dark:text-neutral-200">ルール設定</h3>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-neutral-700 dark:text-neutral-300">ハコシタ終了</p>
+                <p className="text-xs text-neutral-500">0点未満で対局を終了します</p>
+              </div>
+              <button 
+                onClick={() => setSetupRules(prev => ({ ...prev, hasHakoshita: !prev.hasHakoshita }))}
+                className={`w-14 h-8 rounded-full transition-all relative ${setupRules.hasHakoshita ? 'bg-orange-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+              >
+                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${setupRules.hasHakoshita ? 'left-7' : 'left-1'}`} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="font-bold text-neutral-700 dark:text-neutral-300 text-sm">積み棒の点数</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(TSUMIBO_OPTIONS_MAP[setupRules.playerCount] || []).map(val => (
+                  <button
+                    key={val}
+                    onClick={() => setSetupRules(prev => ({ ...prev, tsumiboPoints: val }))}
+                    className={`py-2 text-sm font-bold rounded-xl border transition-all ${setupRules.tsumiboPoints === val ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-500 text-orange-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-400'}`}
+                  >
+                    {setupRules.playerCount === 3 ? (val === 200 ? '通常 (200)' : `${val}点`) : (val === 300 ? '通常 (300)' : `${val}点`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
         </div>
 
         <button 
@@ -327,8 +364,7 @@ export default function MahjongTracker() {
             </div>
           </div>
 
-          {/* Players */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 ${currentState.rules.playerCount === 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
             {currentState.players.map((player) => (
               <PlayerCard 
                 key={player.id} 

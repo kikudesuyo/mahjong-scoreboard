@@ -1,4 +1,4 @@
-import { STARTING_SCORE, TOTAL_GAME_SCORE, DEFAULT_TSUMIBO } from "./constants";
+import { STARTING_SCORE_3P, TOTAL_GAME_SCORE_3P, TOTAL_GAME_SCORE_4P, DEFAULT_TSUMIBO, DEFAULT_PLAYER_COUNT } from "./constants";
 
 export type Player = {
   id: number;
@@ -11,6 +11,7 @@ export type Player = {
 export type GameRules = {
   hasHakoshita: boolean;
   tsumiboPoints: number;
+  playerCount: number;
 };
 
 export type GameState = {
@@ -22,22 +23,24 @@ export type GameState = {
 
 export const INITIAL_STATE: GameState = {
   players: [
-    { id: 1, name: "プレイヤー1", score: STARTING_SCORE, isDealer: true },
-    { id: 2, name: "プレイヤー2", score: STARTING_SCORE },
-    { id: 3, name: "プレイヤー3", score: STARTING_SCORE },
+    { id: 1, name: "プレイヤー1", score: STARTING_SCORE_3P, isDealer: true },
+    { id: 2, name: "プレイヤー2", score: STARTING_SCORE_3P },
+    { id: 3, name: "プレイヤー3", score: STARTING_SCORE_3P },
   ],
   honba: 0,
   kyotaku: 0,
   rules: {
     hasHakoshita: false,
     tsumiboPoints: DEFAULT_TSUMIBO,
+    playerCount: DEFAULT_PLAYER_COUNT,
   },
 };
 
 // Validates the invariant that the total score is exactly 105,000 points.
 export function validateInvariant(state: GameState): boolean {
   const total = state.players.reduce((sum, p) => sum + p.score, 0) + state.kyotaku;
-  return total === TOTAL_GAME_SCORE;
+  const expectedTotal = state.rules.playerCount === 4 ? TOTAL_GAME_SCORE_4P : TOTAL_GAME_SCORE_3P;
+  return total === expectedTotal;
 }
 
 export type HandResult = {
