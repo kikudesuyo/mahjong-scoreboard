@@ -223,12 +223,12 @@ export default function MahjongTracker() {
   if (!isSetupComplete) {
     return (
       <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-8 max-w-md mx-auto">
-        <h2 className="text-2xl font-black mb-6 text-center text-orange-600">新規ゲーム設定</h2>
-        <p className="text-sm text-neutral-500 mb-8 text-center">人数とルールを選択し、プレイヤー名を入力してください</p>
+        <h2 className="text-2xl font-black mb-6 text-center text-orange-600">ルール設定</h2>  
+        <p className="text-sm text-neutral-500 mb-8 text-center">人数、プレイヤー名、ルールを選択してください</p>
         
         <div className="space-y-8">
           <section className="space-y-3">
-            <p className="font-bold text-neutral-700 dark:text-neutral-300 text-sm">1. 人数を選択</p>
+            <p className="text-lg font-black text-neutral-800 dark:text-neutral-200">1. 人数を選択</p>
             <div className="grid grid-cols-2 gap-2">
               {PLAYER_COUNT_OPTIONS.map(count => (
                 <button
@@ -254,7 +254,7 @@ export default function MahjongTracker() {
           </section>
 
           <section className="space-y-4">
-            <p className="font-bold text-neutral-700 dark:text-neutral-300 text-sm">2. プレイヤー名を入力</p>
+            <p className="text-lg border-t border-neutral-100 dark:border-neutral-700 pt-8 font-black text-neutral-800 dark:text-neutral-200">2. プレイヤー名を入力</p>
             {Array.from({ length: setupRules.playerCount }).map((_, i) => (
               <div key={i}>
                 <label className="block text-xs font-bold text-neutral-500 mb-1.5 uppercase tracking-wider">プレイヤー {i + 1}</label>
@@ -270,11 +270,11 @@ export default function MahjongTracker() {
           </section>
 
           <section className="pt-8 border-t border-neutral-100 dark:border-neutral-700 space-y-6">
-            <h3 className="text-lg font-black text-neutral-800 dark:text-neutral-200">ルール設定</h3>
+            <p className="text-lg font-black text-neutral-800 dark:text-neutral-200">3. ルール設定</p>
             
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-bold text-neutral-700 dark:text-neutral-300">ハコシタ終了</p>
+                <p className="text-lg font-black text-neutral-800 dark:text-neutral-200">ハコシタ終了</p>
                 <p className="text-xs text-neutral-500">0点未満で対局を終了します</p>
               </div>
               <button 
