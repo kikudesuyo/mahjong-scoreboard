@@ -7,7 +7,6 @@ export default function Home() {
         <header className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight">麻雀点数管理</h1>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">3人打ち (合計105,000点)</p>
           </div>
         </header>
         

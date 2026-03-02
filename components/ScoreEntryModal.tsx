@@ -90,10 +90,10 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
     if (isOpen) {
       const tsumibo = gameState.rules?.tsumiboPoints ?? DEFAULT_TSUMIBO;
       setRonHonbaPoints(gameState.honba * tsumibo);
-      // For 3-player mahjong, tsumo honba is (total tsumibo) / 2
-      setTsumoHonbaPoints(Math.floor((gameState.honba * tsumibo) / 2));
+      // Tsumo honba is divided among the losers
+      setTsumoHonbaPoints(Math.floor((gameState.honba * tsumibo) / (gameState.rules?.playerCount - 1 || 2)));
     }
-  }, [isOpen, gameState.honba, gameState.rules?.tsumiboPoints]);
+  }, [isOpen, gameState.honba, gameState.rules?.tsumiboPoints, gameState.rules?.playerCount]);
 
   const toggleWinner = (id: number) => {
     if (winType === "tsumo") {
@@ -429,7 +429,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
               <div className="p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-xl border border-neutral-100 dark:border-neutral-800/50">
                 <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest">積み棒 (+{gameState.honba})</label>
                 <div className="text-2xl font-black text-neutral-700 dark:text-neutral-300 tabular-nums">
-                  +{winType === "ron" ? (gameState.honba * (gameState.rules?.tsumiboPoints ?? DEFAULT_TSUMIBO)).toLocaleString() : (Math.floor((gameState.honba * (gameState.rules?.tsumiboPoints ?? DEFAULT_TSUMIBO)) / 2)).toLocaleString()} <span className="text-xs font-normal">点</span>
+                  +{winType === "ron" ? (gameState.honba * (gameState.rules?.tsumiboPoints ?? DEFAULT_TSUMIBO)).toLocaleString() : (Math.floor((gameState.honba * (gameState.rules?.tsumiboPoints ?? DEFAULT_TSUMIBO)) / (gameState.rules?.playerCount - 1 || 2))).toLocaleString()} <span className="text-xs font-normal">点</span>
                 </div>
               </div>
               <div className="p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-xl border border-neutral-100 dark:border-neutral-800/50">

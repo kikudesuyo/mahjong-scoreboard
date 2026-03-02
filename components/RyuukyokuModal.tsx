@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { GameState, INITIAL_STATE } from "@/lib/types";
-import { RYUUKYOKU_TOTAL_POINTS } from "@/lib/constants";
+import { RYUUKYOKU_TOTAL_POINTS_MAP } from "@/lib/constants";
 import Modal from "./Modal";
 
 interface RyuukyokuModalProps {
@@ -12,7 +12,7 @@ interface RyuukyokuModalProps {
 
 export default function RyuukyokuModal({ isOpen, onClose, gameState, onApply }: RyuukyokuModalProps) {
   const [tenpaiPlayers, setTenpaiPlayers] = useState<number[]>([]);
-  const RYUUKYOKU_POINTS = RYUUKYOKU_TOTAL_POINTS; // Total penalty points paid in 3-player mahjong
+  const RYUUKYOKU_POINTS = RYUUKYOKU_TOTAL_POINTS_MAP[gameState.rules.playerCount] || 3000; // Total penalty points paid
 
   const toggleTenpai = (id: number) => {
     setTenpaiPlayers(prev => 
@@ -24,9 +24,9 @@ export default function RyuukyokuModal({ isOpen, onClose, gameState, onApply }: 
     let newPlayers = [...gameState.players];
     const numTenpai = tenpaiPlayers.length;
     
-    // Distribute points if someone is tenpai and someone is noten
-    if (numTenpai > 0 && numTenpai < 3) {
-      const numNoten = 3 - numTenpai;
+    // テンパイ者がいる場合
+    if (numTenpai > 0 && numTenpai < gameState.rules.playerCount) {
+      const numNoten = gameState.rules.playerCount - numTenpai;
       const amountPerTenpai = RYUUKYOKU_POINTS / numTenpai;
       const amountPerNoten = RYUUKYOKU_POINTS / numNoten;
       
@@ -39,7 +39,7 @@ export default function RyuukyokuModal({ isOpen, onClose, gameState, onApply }: 
       });
     }
     
-    // Record point differences
+    // 点数差分を記録
     const pointDiffs: Record<number, number> = {};
     newPlayers.forEach(p => {
       const oldPlayer = gameState.players.find(op => op.id === p.id);

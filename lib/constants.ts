@@ -1,13 +1,24 @@
-export const STARTING_SCORE = 35000;
-export const TOTAL_GAME_SCORE = 105000;
+export const STARTING_SCORE_3P = 35000;
+export const STARTING_SCORE_4P = 25000;
+export const TOTAL_GAME_SCORE_3P = 105000;
+export const TOTAL_GAME_SCORE_4P = 100000;
 
-export const TSUMIBO_OPTIONS = [200, 300, 1000];
-export const DEFAULT_TSUMIBO = 200;
+export const PLAYER_COUNT_OPTIONS = [3, 4];
+export const DEFAULT_PLAYER_COUNT = 3;
+
+export const TSUMIBO_OPTIONS_MAP: Record<number, number[]> = {
+  3: [200, 300,1000],
+  4: [300,1000]
+};
+export const DEFAULT_TSUMIBO = 300; // Will be refined by player count logic anyway
 
 export const HAN_OPTIONS = [1, 2, 3, 4];
 export const FU_OPTIONS = [20, 25,30, 40, 50, 60, 70, 80,90, 100,110];
 
-export const RYUUKYOKU_TOTAL_POINTS = 2000;
+export const RYUUKYOKU_TOTAL_POINTS_MAP: Record<number, number> = {
+  3: 2000,
+  4: 3000
+};
 
 export const LIMIT_HANDS = [
   { id: "mangan", label: "満貫" },
