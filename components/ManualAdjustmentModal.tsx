@@ -32,7 +32,8 @@ export default function ManualAdjustmentModal({ isOpen, onClose, gameState, onAp
     onApply({
       players: newPlayers,
       honba: honba,
-      kyotaku: kyotaku
+      kyotaku: kyotaku,
+      rules: gameState.rules
     }, {
       type: "manual",
       points: {}
