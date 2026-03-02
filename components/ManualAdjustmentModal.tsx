@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { GameState } from "@/lib/types";
+import { TOTAL_GAME_SCORE_3P, TOTAL_GAME_SCORE_4P } from "@/lib/constants";
 import Modal from "./Modal";
 import NumberInput from "./NumberInput";
 
@@ -49,14 +50,15 @@ export default function ManualAdjustmentModal({ isOpen, onClose, gameState, onAp
     setScores(newScores);
   };
   
+  const targetTotal = gameState.rules.playerCount === 4 ? TOTAL_GAME_SCORE_4P : TOTAL_GAME_SCORE_3P;
   const currentTotal = scores.reduce((sum, s) => sum + s, 0) + kyotaku;
-  const isBalanced = currentTotal === 105000;
+  const isBalanced = currentTotal === targetTotal;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="点数修正">
       <div className="space-y-4">
         <p className="text-xs text-neutral-500 mb-4 bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-balance">
-          点数を直接修正します。全プレイヤーの点数 ＋ 供託の合計が正確に 105,000 点になる必要があります。
+          点数を直接修正します。全プレイヤーの点数 ＋ 供託の合計が正確に {targetTotal.toLocaleString()} 点になる必要があります。
         </p>
 
         {gameState.players.map((p, i) => (
@@ -69,21 +71,30 @@ export default function ManualAdjustmentModal({ isOpen, onClose, gameState, onAp
             />
           </div>
         ))}
+        <div>
+            <label className="block text-xs font-black text-neutral-400 uppercase tracking-widest mb-1">供託</label>
+            <NumberInput
+              value={kyotaku}
+              onChange={(val) => setKyotaku(val)}
+              step={1000}
+              min={0}
+            />
+        </div>        
         
         <div className={`pt-4 p-3 rounded font-bold text-center ${isBalanced ? 'bg-neutral-100 text-neutral-800' : 'bg-orange-50 text-orange-800'}`}>
           合計点数: {currentTotal.toLocaleString()} {isBalanced ? '✓' : '⚠️'}
           <br/>
-          <span className="text-xs font-normal opacity-60">(目標: 105,000)</span>
+          <span className="text-xs font-normal opacity-60">(目標: {targetTotal.toLocaleString()})</span>
         </div>
 
         <div className="pt-2">
-          <label className="block text-xs font-black text-neutral-400 uppercase tracking-widest mb-1">本場</label>
-          <NumberInput
-            value={honba}
-            onChange={setHonba}
-            step={1}
-            min={0}
-          />
+            <label className="block text-xs font-black text-neutral-400 uppercase tracking-widest mb-1">本場</label>
+            <NumberInput
+              value={honba}
+              onChange={setHonba}
+              step={1}
+              min={0}
+            />
         </div>
 
         <button 
