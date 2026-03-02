@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { GameState, INITIAL_STATE, validateInvariant, HandRecord, HandResult } from "@/lib/types";
+import { STARTING_SCORE, TSUMIBO_OPTIONS } from "@/lib/constants";
 import PlayerCard from "./PlayerCard";
 import ScoreEntryModal from "./ScoreEntryModal";
 import RyuukyokuModal from "./RyuukyokuModal";
@@ -15,22 +16,28 @@ export default function MahjongTracker() {
   const [currentState, setCurrentState] = useState<GameState>(INITIAL_STATE);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [setupNames, setSetupNames] = useState(["", "", ""]);
+  const [setupRules, setSetupRules] = useState(INITIAL_STATE.rules);
   const [activeTab, setActiveTab] = useState<"scoreboard" | "stats">("scoreboard");
   
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
   const [isRyuukyokuModalOpen, setIsRyuukyokuModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const savedState = localStorage.getItem("mahjong_state");
-    if (savedState) {
-      try {
-        setCurrentState(JSON.parse(savedState));
-      } catch (e) {
-        console.error("Failed to parse saved state", e);
+    // Load from localStorage on mount
+    useEffect(() => {
+      const savedState = localStorage.getItem("mahjong_state");
+      if (savedState) {
+        try {
+          const parsed = JSON.parse(savedState);
+          // State Migration: Ensure rules exists
+          if (!parsed.rules) {
+            parsed.rules = INITIAL_STATE.rules;
+          }
+          setCurrentState(parsed);
+        } catch (e) {
+          console.error("Failed to parse saved state", e);
+        }
       }
-    }
     const savedHistory = localStorage.getItem("mahjong_history");
     if (savedHistory) {
       try {
@@ -65,12 +72,13 @@ export default function MahjongTracker() {
   }, [currentState, history, handRecords, isLoaded, isSetupComplete]);
 
   const applyStateUpdate = (newState: GameState, result?: HandResult) => {
-    if (!validateInvariant(newState)) {
-      console.error("エラー: 合計点数が105,000点になりません。");
-      alert("エラー: 合計点数が105,000点になりません。");
-      return;
+    if (newState.rules.hasHakoshita) {
+      const negativePlayer = newState.players.find(p => p.score < 0);
+      if (negativePlayer) {
+        alert(`${negativePlayer.name}さんがハコ割れ（0点未満）しました。ゲーム終了です！`);
+      }
     }
-    
+
     // Clear riichi status when moving to a new state (e.g. after agari/ryuukyoku)
     const playersWithoutRiichi = newState.players.map(p => ({ ...p, isRiichi: false }));
     const finalState = { ...newState, players: playersWithoutRiichi };
@@ -104,7 +112,8 @@ export default function MahjongTracker() {
       setHandRecords([]);
       setCurrentState({
         ...INITIAL_STATE,
-        players: currentState.players.map(p => ({ ...p, score: 35000, isRiichi: false })) // Keep names, reset scores & riichi
+        players: currentState.players.map(p => ({ ...p, score: STARTING_SCORE, isRiichi: false })), // Keep names, reset scores & riichi
+        rules: currentState.rules // Keep rules
       });
     }
   };
@@ -116,6 +125,7 @@ export default function MahjongTracker() {
       setCurrentState(INITIAL_STATE);
       setIsSetupComplete(false);
       setSetupNames(["", "", ""]);
+      setSetupRules(INITIAL_STATE.rules);
       localStorage.removeItem("mahjong_state");
       localStorage.removeItem("mahjong_history");
       localStorage.removeItem("mahjong_setup");
@@ -190,7 +200,11 @@ export default function MahjongTracker() {
       ...p,
       name: setupNames[i].trim() || `プレイヤー${i + 1}`
     }));
-    setCurrentState({ ...currentState, players: newPlayers });
+    setCurrentState({ 
+      ...currentState, 
+      players: newPlayers,
+      rules: setupRules
+    });
     setIsSetupComplete(true);
   };
 
@@ -217,6 +231,38 @@ export default function MahjongTracker() {
               />
             </div>
           ))}
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-neutral-100 dark:border-neutral-700 space-y-6">
+          <h3 className="text-lg font-black text-neutral-800 dark:text-neutral-200">ルール設定</h3>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold text-neutral-700 dark:text-neutral-300">ハコシタ終了</p>
+              <p className="text-xs text-neutral-500">0点未満で対局を終了します</p>
+            </div>
+            <button 
+              onClick={() => setSetupRules(prev => ({ ...prev, hasHakoshita: !prev.hasHakoshita }))}
+              className={`w-14 h-8 rounded-full transition-all relative ${setupRules.hasHakoshita ? 'bg-orange-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+            >
+              <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${setupRules.hasHakoshita ? 'left-7' : 'left-1'}`} />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <p className="font-bold text-neutral-700 dark:text-neutral-300 text-sm">積み棒の点数</p>
+            <div className="grid grid-cols-3 gap-2">
+              {TSUMIBO_OPTIONS.map(val => (
+                <button
+                  key={val}
+                  onClick={() => setSetupRules(prev => ({ ...prev, tsumiboPoints: val }))}
+                  className={`py-2 text-sm font-bold rounded-xl border transition-all ${setupRules.tsumiboPoints === val ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-500 text-orange-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-400'}`}
+                >
+                  {val === 200 ? '通常 (200)' : `${val}点`}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <button 

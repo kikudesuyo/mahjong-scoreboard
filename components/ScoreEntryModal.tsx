@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { GameState } from "@/lib/types";
+import { GameState, INITIAL_STATE } from "@/lib/types";
 import Modal from "./Modal";
 import NumberInput from "./NumberInput";
 import { scoresTable, limitScores, WinRole, ScoreData } from "@/lib/mahjongScores";
+import { HAN_OPTIONS, LIMIT_HANDS, FU_OPTIONS, DEFAULT_TSUMIBO } from "@/lib/constants";
 
 interface ScoreEntryModalProps {
   isOpen: boolean;
@@ -88,10 +89,12 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
 
   useEffect(() => {
     if (isOpen) {
-      setRonHonbaPoints(gameState.honba * 300);
-      setTsumoHonbaPoints(gameState.honba * 100);
+      const tsumibo = gameState.rules?.tsumiboPoints ?? DEFAULT_TSUMIBO;
+      setRonHonbaPoints(gameState.honba * tsumibo);
+      // For 3-player mahjong, tsumo honba is (total tsumibo) / 2
+      setTsumoHonbaPoints(Math.floor((gameState.honba * tsumibo) / 2));
     }
-  }, [isOpen, gameState.honba]);
+  }, [isOpen, gameState.honba, gameState.rules?.tsumiboPoints]);
 
   const toggleWinner = (id: number) => {
     if (winType === "tsumo") {
@@ -209,6 +212,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
       players: newPlayers,
       honba: newHonba,
       kyotaku: newKyotaku,
+      rules: gameState.rules || INITIAL_STATE.rules,
     }, {
       type: winType as "tsumo" | "ron",
       winnerIds,
@@ -295,7 +299,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
                   <div>
                     <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest opacity-60">一般役</label>
                     <div className="grid grid-cols-4 gap-2">
-                      {[1, 2, 3, 4].map(h => (
+                      {HAN_OPTIONS.map(h => (
                         <button
                           key={h}
                           onClick={() => { setSelectedHan(h); updatePointsFromTable(selectedRole, h, selectedFu); }}
@@ -309,13 +313,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
                   <div>
                     <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest opacity-60">満貫以上</label>
                     <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: "mangan", label: "満貫" },
-                        { id: "haneman", label: "跳満" },
-                        { id: "baiman", label: "倍満" },
-                        { id: "sanbaiman", label: "三倍満" },
-                        { id: "yakuman", label: "役満" },
-                      ].map(h => (
+                      {LIMIT_HANDS.map(h => (
                         <button
                           key={h.id}
                           onClick={() => { setSelectedHan(h.id); updatePointsFromTable(selectedRole, h.id, selectedFu); }}
@@ -345,9 +343,9 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest opacity-60">符 (Fu)</label>
+                    <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest opacity-60">符</label>
                     <div className="grid grid-cols-4 gap-2">
-                      {[20, 30, 40, 50, 60, 70, 80, 100].map(f => (
+                      {FU_OPTIONS.map(f => (
                         <button
                           key={f}
                           disabled={typeof selectedHan === "string" || (f === 20 && (selectedHan === 1 || winType === "ron"))}
@@ -421,7 +419,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
               <div className="p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-xl border border-neutral-100 dark:border-neutral-800/50">
                 <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest">積み棒 (+{gameState.honba})</label>
                 <div className="text-2xl font-black text-neutral-700 dark:text-neutral-300 tabular-nums">
-                  +{winType === "ron" ? (gameState.honba * 300).toLocaleString() : (gameState.honba * 100).toLocaleString()} <span className="text-xs font-normal">点</span>
+                  +{winType === "ron" ? (gameState.honba * (gameState.rules?.tsumiboPoints ?? DEFAULT_TSUMIBO)).toLocaleString() : (Math.floor((gameState.honba * (gameState.rules?.tsumiboPoints ?? DEFAULT_TSUMIBO)) / 2)).toLocaleString()} <span className="text-xs font-normal">点</span>
                 </div>
               </div>
               <div className="p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-xl border border-neutral-100 dark:border-neutral-800/50">

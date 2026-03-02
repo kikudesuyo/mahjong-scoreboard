@@ -9,7 +9,7 @@ export interface ScoreData {
   };
 }
 
-// Fu keys: 20, 30, 40, 50, 60, 70
+// Fu keys: 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110
 // Han keys: 1, 2, 3, 4
 export const scoresTable: Record<WinRole, Record<number, Record<number, ScoreData>>> = {
   // Ko entries (when a non-dealer wins)
