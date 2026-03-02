@@ -15,4 +15,6 @@ export const LIMIT_HANDS = [
   { id: "baiman", label: "倍満" },
   { id: "sanbaiman", label: "三倍満" },
   { id: "yakuman", label: "役満" },
+  {id:"double_yakuman", label:"二倍役満"},
+  {id:"triple_yakuman", label:"三倍役満"}
 ];
