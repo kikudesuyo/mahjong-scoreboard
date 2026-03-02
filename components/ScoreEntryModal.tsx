@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { GameState, INITIAL_STATE } from "@/lib/types";
 import Modal from "./Modal";
-import NumberInput from "./NumberInput";
 import { scoresTable, limitScores, WinRole, ScoreData } from "@/lib/mahjongScores";
 import { HAN_OPTIONS, LIMIT_HANDS, FU_OPTIONS, DEFAULT_TSUMIBO } from "@/lib/constants";
 
@@ -345,16 +344,27 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
                   <div>
                     <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest opacity-60">符</label>
                     <div className="grid grid-cols-4 gap-2">
-                      {FU_OPTIONS.map(f => (
-                        <button
-                          key={f}
-                          disabled={typeof selectedHan === "string" || (f === 20 && (selectedHan === 1 || winType === "ron"))}
-                          onClick={() => { setSelectedFu(f); updatePointsFromTable(selectedRole, selectedHan, f); }}
-                          className={`py-2 text-sm font-bold rounded-lg transition-all disabled:opacity-10 ${selectedFu === f ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'}`}
-                        >
-                          {f}
-                        </button>
-                      ))}
+                      {FU_OPTIONS.map(f => {
+                        const isApplicable = (() => {
+                          if (typeof selectedHan === "string") return false;
+                          const data = scoresTable[selectedRole]?.[f]?.[selectedHan];
+                          if (!data) return false;
+                          if (winType === "tsumo" && !data.tsumo) return false;
+                          if (winType === "ron" && data.ron === null) return false;
+                          return true;
+                        })();
+
+                        return (
+                          <button
+                            key={f}
+                            disabled={!isApplicable}
+                            onClick={() => { setSelectedFu(f); updatePointsFromTable(selectedRole, selectedHan, f); }}
+                            className={`py-2 text-sm font-bold rounded-lg transition-all ${selectedFu === f ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'} disabled:opacity-10 disabled:cursor-not-allowed`}
+                          >
+                            {f}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
