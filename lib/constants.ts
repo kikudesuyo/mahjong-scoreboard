@@ -13,7 +13,7 @@ export const TSUMIBO_OPTIONS_MAP: Record<number, number[]> = {
 export const DEFAULT_TSUMIBO = 300; // Will be refined by player count logic anyway
 
 export const HAN_OPTIONS = [1, 2, 3, 4];
-export const FU_OPTIONS = [20, 25,30, 40, 50, 60, 70, 80,90, 100,110];
+export const FU_OPTIONS = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110];
 
 export const RYUUKYOKU_TOTAL_POINTS_MAP: Record<number, number> = {
   3: 2000,

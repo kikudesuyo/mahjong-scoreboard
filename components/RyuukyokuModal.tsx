@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { GameState, INITIAL_STATE } from "@/lib/types";
+import { HAND_RESULT_TYPE } from "@/lib/mahjongScores";
 import { RYUUKYOKU_TOTAL_POINTS_MAP } from "@/lib/constants";
 import Modal from "./Modal";
 
@@ -54,7 +55,7 @@ export default function RyuukyokuModal({ isOpen, onClose, gameState, onApply }: 
       kyotaku: gameState.kyotaku, // Kyotaku carries over
       rules: gameState.rules || INITIAL_STATE.rules
     }, {
-      type: "ryuukyoku",
+      type: HAND_RESULT_TYPE.RYUUKYOKU,
       winnerIds: tenpaiPlayers,
       points: pointDiffs
     });

@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { GameState, INITIAL_STATE,  HandRecord, HandResult } from "@/lib/types";
 import { STARTING_SCORE_3P, STARTING_SCORE_4P, TSUMIBO_OPTIONS_MAP, PLAYER_COUNT_OPTIONS } from "@/lib/constants";
+import { HAND_RESULT_TYPE, AGARI_TYPE } from "@/lib/mahjongScores";
 import PlayerCard from "./PlayerCard";
 import ScoreEntryModal from "./ScoreEntryModal";
 import RyuukyokuModal from "./RyuukyokuModal";
 import ManualAdjustmentModal from "./ManualAdjustmentModal";
+import MultiRonModal from "./MultiRonModal";
 import StatsView from "./StatsView";
 
 export default function MahjongTracker() {
@@ -23,6 +25,7 @@ export default function MahjongTracker() {
   const [selectedWinnerId, setSelectedWinnerId] = useState<number | null>(null);
   const [isRyuukyokuModalOpen, setIsRyuukyokuModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [isMultiRonModalOpen, setIsMultiRonModalOpen] = useState(false);
 
     // Load from localStorage on mount
     useEffect(() => {
@@ -50,7 +53,22 @@ export default function MahjongTracker() {
     const savedHandRecords = localStorage.getItem("mahjong_hand_records");
     if (savedHandRecords) {
       try {
-        setHandRecords(JSON.parse(savedHandRecords));
+        const parsed = JSON.parse(savedHandRecords);
+        // Migration: Convert old flattened type to new Agari structure
+        const migrated = parsed.map((record: any) => {
+          if (record.result.type === "tsumo" || record.result.type === "ron") {
+            return {
+              ...record,
+              result: {
+                ...record.result,
+                type: HAND_RESULT_TYPE.AGARI,
+                agariType: record.result.type
+              }
+            };
+          }
+          return record;
+        });
+        setHandRecords(migrated);
       } catch (e) {
         console.error("Failed to parse saved hand records", e);
       }
@@ -81,7 +99,10 @@ export default function MahjongTracker() {
     }
 
     // Clear riichi status only when a hand actually ends (agari/ryuukyoku)
-    const shouldClearRiichi = result && ["tsumo", "ron", "ryuukyoku"].includes(result.type);
+    const shouldClearRiichi = result && (
+      result.type === HAND_RESULT_TYPE.AGARI || 
+      result.type === HAND_RESULT_TYPE.RYUUKYOKU
+    );
     const finalState = { 
       ...newState, 
       players: shouldClearRiichi 
@@ -429,6 +450,12 @@ export default function MahjongTracker() {
               手動修正
             </button>
             <button 
+              onClick={() => setIsMultiRonModalOpen(true)}
+              className="px-6 py-3.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl transition-all active:scale-95"
+            >
+              複数ロン
+            </button>
+            <button 
               onClick={undo}
               disabled={history.length === 0}
               className="px-6 py-3.5 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-400 dark:text-neutral-600 font-bold rounded-xl border border-transparent disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -471,6 +498,13 @@ export default function MahjongTracker() {
         onClose={() => setIsManualModalOpen(false)} 
         gameState={currentState} 
         onApply={applyStateUpdate} 
+      />
+
+      <MultiRonModal
+        isOpen={isMultiRonModalOpen}
+        onClose={() => setIsMultiRonModalOpen(false)}
+        gameState={currentState}
+        onApply={applyStateUpdate}
       />
     </div>
   );

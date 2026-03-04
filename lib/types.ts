@@ -43,8 +43,11 @@ export function validateInvariant(state: GameState): boolean {
   return total === expectedTotal;
 }
 
+import { HAND_RESULT_TYPE, AGARI_TYPE } from "./mahjongScores";
+
 export type HandResult = {
-  type: "tsumo" | "ron" | "ryuukyoku" | "manual";
+  type: typeof HAND_RESULT_TYPE[keyof typeof HAND_RESULT_TYPE];
+  agariType?: typeof AGARI_TYPE[keyof typeof AGARI_TYPE];
   winnerIds?: number[];
   loserId?: number | null;
   points?: Record<number, number>; // Total points gained/lost per player (including Honba/Kyotaku)
