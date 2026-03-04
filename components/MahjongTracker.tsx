@@ -20,6 +20,7 @@ export default function MahjongTracker() {
   const [activeTab, setActiveTab] = useState<"scoreboard" | "stats">("scoreboard");
   
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
+  const [selectedWinnerId, setSelectedWinnerId] = useState<number | null>(null);
   const [isRyuukyokuModalOpen, setIsRyuukyokuModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
 
@@ -371,6 +372,10 @@ export default function MahjongTracker() {
                 key={player.id} 
                 player={player} 
                 onRiichi={() => handleRiichi(player.id)} 
+                onAgari={() => {
+                  setSelectedWinnerId(player.id);
+                  setIsScoreModalOpen(true);
+                }}
                 onSetDealer={() => handleSetDealer(player.id)}
                 onChangeName={(name) => handleNameChange(player.id, name)} 
                 canRiichi={player.isRiichi ? true : (currentState.rules.hasHakoshita ? player.score >= 1000 : true)} 
@@ -381,8 +386,12 @@ export default function MahjongTracker() {
           {/* Actions */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
             <button 
-              onClick={() => setIsScoreModalOpen(true)}
-              className="px-6 py-3.5 bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 font-bold rounded-xl transition-all active:scale-95 shadow-sm"
+              onClick={() => {
+                setSelectedWinnerId(null);
+                setIsScoreModalOpen(true);
+              }}
+              className="px-6 py-3.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-600 font-bold rounded-xl transition-all cursor-not-allowed opacity-50 hidden"
+              disabled
             >
               和了
             </button>
@@ -420,9 +429,13 @@ export default function MahjongTracker() {
 
       <ScoreEntryModal 
         isOpen={isScoreModalOpen} 
-        onClose={() => setIsScoreModalOpen(false)} 
+        onClose={() => {
+          setIsScoreModalOpen(false);
+          setSelectedWinnerId(null);
+        }} 
         gameState={currentState} 
         onApply={applyStateUpdate} 
+        initialWinnerId={selectedWinnerId}
       />
       
       <RyuukyokuModal 
