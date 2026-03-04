@@ -30,6 +30,12 @@ export default function ManualAdjustmentModal({ isOpen, onClose, gameState, onAp
       score: scores[i]
     }));
     
+    // Record point differences
+    const pointDiffs: Record<number, number> = {};
+    newPlayers.forEach((p, i) => {
+      pointDiffs[p.id] = p.score - gameState.players[i].score;
+    });
+
     onApply({
       players: newPlayers,
       honba: honba,
@@ -37,7 +43,7 @@ export default function ManualAdjustmentModal({ isOpen, onClose, gameState, onAp
       rules: gameState.rules
     }, {
       type: "manual",
-      points: {}
+      points: pointDiffs
     });
     
     onClose();

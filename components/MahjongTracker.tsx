@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GameState, INITIAL_STATE, validateInvariant, HandRecord, HandResult } from "@/lib/types";
+import { GameState, INITIAL_STATE,  HandRecord, HandResult } from "@/lib/types";
 import { STARTING_SCORE_3P, STARTING_SCORE_4P, TSUMIBO_OPTIONS_MAP, PLAYER_COUNT_OPTIONS } from "@/lib/constants";
 import PlayerCard from "./PlayerCard";
 import ScoreEntryModal from "./ScoreEntryModal";
@@ -80,20 +80,43 @@ export default function MahjongTracker() {
       }
     }
 
-    // Clear riichi status when moving to a new state (e.g. after agari/ryuukyoku)
-    const playersWithoutRiichi = newState.players.map(p => ({ ...p, isRiichi: false }));
-    const finalState = { ...newState, players: playersWithoutRiichi };
+    // Clear riichi status only when a hand actually ends (agari/ryuukyoku)
+    const shouldClearRiichi = result && ["tsumo", "ron", "ryuukyoku"].includes(result.type);
+    const finalState = { 
+      ...newState, 
+      players: shouldClearRiichi 
+        ? newState.players.map(p => ({ ...p, isRiichi: false }))
+        : newState.players 
+    };
 
     setHistory((prev) => [...prev, currentState]);
     setCurrentState(finalState);
 
     if (result) {
+      // Calculate actual point differences between pre and post state for all players
+      // This ensures Riichi declarations (-1000) made during this hand are reflected
+      const actualPoints: Record<number, number> = {};
+      currentState.players.forEach(preP => {
+        const postP = finalState.players.find(p => p.id === preP.id);
+        if (postP) {
+          actualPoints[preP.id] = postP.score - preP.score;
+        }
+      });
+
+      // Capture metadata for history
+      const recordResult = {
+        ...result,
+        points: actualPoints, // Use the calculated differences instead of the provided ones
+        honba: currentState.honba,
+        riichiPlayerIds: currentState.players.filter(p => p.isRiichi).map(p => p.id)
+      };
+
       const record: HandRecord = {
         id: crypto.randomUUID(),
         timestamp: Date.now(),
         preState: currentState,
         postState: finalState,
-        result: result
+        result: recordResult
       };
       setHandRecords((prev) => [...prev, record]);
     }
@@ -145,8 +168,7 @@ export default function MahjongTracker() {
         p.id === playerId ? { ...p, score: p.score + 1000, isRiichi: false } : p
       );
       
-      setHistory((prev) => [...prev, currentState]);
-      setCurrentState({
+      applyStateUpdate({
         ...currentState,
         players: newPlayers,
         kyotaku: currentState.kyotaku - 1000,
@@ -161,8 +183,7 @@ export default function MahjongTracker() {
       p.id === playerId ? { ...p, score: p.score - 1000, isRiichi: true } : p
     );
     
-    setHistory((prev) => [...prev, currentState]);
-    setCurrentState({
+    applyStateUpdate({
       ...currentState,
       players: newPlayers,
       kyotaku: currentState.kyotaku + 1000,

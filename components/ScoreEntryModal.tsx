@@ -30,7 +30,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
 
   // Score Table Selection State
   const [selectedHan, setSelectedHan] = useState<number | string>(1);
-  const [selectedFu, setSelectedFu] = useState<number>(30);
+  const [selectedFu, setSelectedFu] = useState<number | undefined>(30);
   const [selectedRole, setSelectedRole] = useState<WinRole>("ko");
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
     }
   }, [isOpen, initialWinnerId]);
 
-  const updatePointsFromTable = useCallback((role: WinRole, han: number | string, fu: number) => {
+  const updatePointsFromTable = useCallback((role: WinRole, han: number | string, fu: number | undefined) => {
     let data: ScoreData | undefined;
     
     if (typeof han === "string") {
@@ -319,7 +319,13 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
                       {HAN_OPTIONS.map(h => (
                         <button
                           key={h}
-                          onClick={() => { setSelectedHan(h); updatePointsFromTable(selectedRole, h, selectedFu); }}
+                          onClick={() => { 
+                            setSelectedHan(h); 
+                            // Ensure a Fu is selected if we move back from a limit hand
+                            const newFu = selectedFu || 30;
+                            if (!selectedFu) setSelectedFu(30);
+                            updatePointsFromTable(selectedRole, h, newFu); 
+                          }}
                           className={`py-2 text-sm font-bold rounded-lg transition-all ${selectedHan === h ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'}`}
                         >
                           {h}翻
@@ -333,7 +339,11 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
                       {LIMIT_HANDS.map(h => (
                         <button
                           key={h.id}
-                          onClick={() => { setSelectedHan(h.id); updatePointsFromTable(selectedRole, h.id, selectedFu); }}
+                          onClick={() => { 
+                            setSelectedHan(h.id); 
+                            setSelectedFu(undefined);
+                            updatePointsFromTable(selectedRole, h.id, undefined); 
+                          }}
                           className={`py-2 text-[10px] font-black rounded-lg transition-all ${selectedHan === h.id ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'}`}
                         >
                           {h.label}
@@ -359,32 +369,33 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest opacity-60">符</label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {FU_OPTIONS.map(f => {
-                        const isApplicable = (() => {
-                          if (typeof selectedHan === "string") return false;
-                          const data = scoresTable[selectedRole]?.[f]?.[selectedHan];
-                          if (!data) return false;
-                          if (winType === "tsumo" && !data.tsumo) return false;
-                          if (winType === "ron" && data.ron === null) return false;
-                          return true;
-                        })();
+                  {typeof selectedHan !== "string" && (
+                    <div>
+                      <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest opacity-60">符</label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {FU_OPTIONS.map(f => {
+                          const isApplicable = (() => {
+                            const data = scoresTable[selectedRole]?.[f]?.[selectedHan as number];
+                            if (!data) return false;
+                            if (winType === "tsumo" && !data.tsumo) return false;
+                            if (winType === "ron" && data.ron === null) return false;
+                            return true;
+                          })();
 
-                        return (
-                          <button
-                            key={f}
-                            disabled={!isApplicable}
-                            onClick={() => { setSelectedFu(f); updatePointsFromTable(selectedRole, selectedHan, f); }}
-                            className={`py-2 text-sm font-bold rounded-lg transition-all ${selectedFu === f ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'} disabled:opacity-10 disabled:cursor-not-allowed`}
-                          >
-                            {f}
-                          </button>
-                        );
-                      })}
+                          return (
+                            <button
+                              key={f}
+                              disabled={!isApplicable}
+                              onClick={() => { setSelectedFu(f); updatePointsFromTable(selectedRole, selectedHan, f); }}
+                              className={`py-2 text-sm font-bold rounded-lg transition-all ${selectedFu === f ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'} disabled:opacity-10 disabled:cursor-not-allowed`}
+                            >
+                              {f}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -398,8 +409,17 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
                 
                 return (
                   <div className="text-center pt-6 border-t border-neutral-100 dark:border-neutral-800">
-                    <span className="text-sm text-neutral-400 font-bold">{label} → </span>
-                    <span className="text-5xl font-black text-neutral-800 dark:text-neutral-200 ml-2 tabular-nums">
+                    <div className="flex flex-col items-center gap-1 mb-2">
+                       <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{label}</span>
+                       {winType === "ron" && loserId && (
+                         <div className="flex items-center gap-2 text-xs font-black text-neutral-500">
+                           <span>{winnerIds.map(id => gameState.players.find(p => p.id === id)?.name).join(' & ')}</span>
+                           <span className="text-neutral-300">→</span>
+                           <span>{gameState.players.find(p => p.id === loserId)?.name}</span>
+                         </div>
+                       )}
+                    </div>
+                    <span className="text-5xl font-black text-neutral-800 dark:text-neutral-200 tabular-nums">
                       {winType === "ron" ? (
                         data.ron === null ? "?" : `${data.ron.toLocaleString()}`
                       ) : (
