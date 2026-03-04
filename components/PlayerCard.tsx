@@ -65,7 +65,19 @@ export default function PlayerCard({ player, onRiichi, onSetDealer, onChangeName
         )}
       </div>
       
-      <div className="mt-auto">
+      <div className="flex-1 flex flex-col justify-center">
+        {player.isRiichi ? (
+          <div className="mb-4 animate-in fade-in zoom-in duration-300">
+            <img 
+              src="/riichi-stick.svg" 
+              alt="Riichi Stick" 
+              className="w-full h-auto max-h-6 object-contain opacity-90 dark:opacity-80"
+            />
+          </div>
+        ) : (
+          <div className="h-10 invisible" aria-hidden="true" />
+        )}
+
         <div className="text-4xl font-black mb-6 text-neutral-800 dark:text-neutral-100 tabular-nums tracking-tighter">
           {player.score.toLocaleString()}
         </div>
