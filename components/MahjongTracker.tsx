@@ -426,7 +426,7 @@ export default function MahjongTracker() {
               onClick={() => setIsManualModalOpen(true)}
               className="px-6 py-3.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl transition-all active:scale-95"
             >
-              修正
+              手動修正
             </button>
             <button 
               onClick={undo}

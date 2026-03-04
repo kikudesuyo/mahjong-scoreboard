@@ -28,37 +28,60 @@ export default function ScoreChart({ handRecords }: ScoreChartProps) {
   });
 
   const chartData = [initialData];
+  
+  const players = handRecords[0].preState.players;
 
   handRecords.forEach((record, idx) => {
+    // If it's a manual adjustment, insert a NARROW break point before the new data
+    // idx + 0.9 creates a 0.1 unit gap right before the next hand (idx + 1)
+    if (record.result.type === "manual") {
+      const breakPoint = {
+        index: idx + 0.98,
+        isBreak: true,
+      } as any;
+      
+      players.forEach((p: any) => {
+        breakPoint[p.name] = null;
+      });
+      
+      chartData.push(breakPoint);
+    }
+
     const dataPoint = {
       index: idx + 1,
       name: `${idx + 1}`,
     } as any;
     
-    record.postState.players.forEach(p => {
+    record.postState.players.forEach((p: any) => {
       dataPoint[p.name] = p.score;
     });
     
     chartData.push(dataPoint);
   });
 
-  const players = handRecords[0].preState.players;
   const colors = ["#ef4444", "#3b82f6", "#f59e0b", "#10b981"];
 
   return (
     <div className="h-80 w-full mt-4">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#88888820" />
           <XAxis 
-            dataKey="name" 
+            type="number"
+            dataKey="index" 
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#888', fontSize: 10, fontWeight: 'bold' }}
+            domain={[0, 'dataMax']}
+            tickFormatter={(value) => value % 1 === 0 ? (value === 0 ? "開始" : value) : ""}
+            label={{ value: '局数', position: 'insideBottomRight', offset: -10, fill: '#888', fontSize: 10, fontWeight: 'bold' }}
           />
           <YAxis 
-            hide={true} 
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#888', fontSize: 10, fontWeight: 'bold' }}
             domain={['dataMin - 5000', 'dataMax + 5000']} 
+            label={{ value: '点数 (調整後)', angle: -90, position: 'insideLeft', offset: -30, fill: '#888', fontSize: 10, fontWeight: 'bold' }}
           />
           <Tooltip 
             contentStyle={{ 
@@ -78,9 +101,14 @@ export default function ScoreChart({ handRecords }: ScoreChartProps) {
               dataKey={p.name} 
               stroke={colors[i % colors.length]} 
               strokeWidth={3}
-              dot={{ r: 4, strokeWidth: 2 }}
+              dot={(props: any) => {
+                // Hide dots on break points
+                if (props.payload.isBreak) return null;
+                return <circle {...props} r={4} strokeWidth={2} />;
+              }}
               activeDot={{ r: 6, strokeWidth: 0 }}
               animationDuration={500}
+              connectNulls={false}
             />
           ))}
         </LineChart>

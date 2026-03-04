@@ -61,7 +61,7 @@ export default function ManualAdjustmentModal({ isOpen, onClose, gameState, onAp
   const isBalanced = currentTotal === targetTotal;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="点数修正">
+    <Modal isOpen={isOpen} onClose={onClose} title="点数の修正">
       <div className="space-y-4">
         <p className="text-xs text-neutral-500 mb-4 bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-balance">
           点数を直接修正します。全プレイヤーの点数 ＋ 供託の合計が正確に {targetTotal.toLocaleString()} 点になる必要があります。
