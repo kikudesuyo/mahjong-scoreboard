@@ -52,6 +52,8 @@ export type HandResult = {
   han?: number | string;
   fu?: number;
   isOyaWin?: boolean;
+  honba?: number;
+  riichiPlayerIds?: number[];
 };
 
 export type HandRecord = {

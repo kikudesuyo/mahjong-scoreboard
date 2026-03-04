@@ -127,31 +127,86 @@ export default function StatsView({ handRecords }: StatsViewProps) {
           {handRecords.length === 0 ? (
             <div className="p-12 text-center text-neutral-400 font-bold italic">履歴がありません</div>
           ) : (
-            [...handRecords].reverse().map((record, idx) => (
-              <div key={record.id} className="p-6 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 px-2 py-0.5 rounded uppercase tracking-tighter">
-                      {record.result.type === "ryuukyoku" ? "流局" : record.result.type === "ron" ? "ロン" : record.result.type === "tsumo" ? "ツモ" : "修正"}
-                    </span>
-                    <span className="font-black text-lg">
-                      {record.result.winnerIds?.map(id => record.preState.players.find(p => p.id === id)?.name).join(' ・ ') || "（なし）"}
-                    </span>
+            [...handRecords].reverse().map((record) => (
+              <div key={record.id} className="p-6 space-y-4 hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${
+                        record.result.type === 'tsumo' ? 'bg-orange-500 text-white' :
+                        record.result.type === 'ron' ? 'bg-red-500 text-white' :
+                        record.result.type === 'ryuukyoku' ? 'bg-neutral-500 text-white' :
+                        'bg-neutral-100 dark:bg-neutral-700 text-neutral-500'
+                      }`}>
+                        {record.result.type === "ryuukyoku" ? "流局" : 
+                         record.result.type === "ron" ? "ロン" : 
+                         record.result.type === "tsumo" ? "ツモ" : 
+                         "修正"}
+                      </span>
+                      {record.result.honba !== undefined && record.result.honba > 0 && (
+                        <span className="text-[10px] font-black bg-orange-100 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded">
+                          {record.result.honba}本場
+                        </span>
+                      )}
+                      <span className="font-black text-lg ml-1">
+                        {record.result.type === "ron" && record.result.loserId ? (
+                          <span className="flex items-center gap-2">
+                            <span>{record.result.winnerIds?.map(id => record.preState.players.find(p => p.id === id)?.name).join(' ・ ')}</span>
+                            <span className="text-neutral-300">→</span>
+                            <span className="text-neutral-500">{record.preState.players.find(p => p.id === record.result.loserId)?.name}</span>
+                          </span>
+                        ) : (
+                          record.result.winnerIds?.map(id => record.preState.players.find(p => p.id === id)?.name).join(' ・ ') || (record.result.type === "ryuukyoku" ? "全員" : "（なし）")
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-neutral-400 font-bold">
+                      <span>
+                        {record.result.han ? (
+                          <>
+                            {typeof record.result.han === "number" 
+                              ? `${record.result.han}翻` 
+                              : { mangan: "満貫", haneman: "跳満", baiman: "倍満", sanbaiman: "三倍満", yakuman: "役満", double_yakuman: "ダブル役満", triple_yakuman: "トリプル役満" }[record.result.han as string] || record.result.han}
+                            {record.result.fu && ` ${record.result.fu}符`}
+                          </>
+                        ) : "-"}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-neutral-400 font-bold">
-                    {record.result.han ? `${record.result.han}翻 ${record.result.fu}符` : "-"}
-                    {record.result.loserId && ` (放銃: ${record.preState.players.find(p => p.id === record.result.loserId)?.name})`}
-                  </p>
+                  
+                  {record.result.riichiPlayerIds && record.result.riichiPlayerIds.length > 0 && (
+                    <div className="flex items-center gap-1.5 opacity-60">
+                      <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">立直:</span>
+                      <div className="flex -space-x-1">
+                        {record.result.riichiPlayerIds.map(id => (
+                          <div key={id} className="w-5 h-5 rounded-full bg-neutral-200 dark:bg-neutral-700 border-2 border-white dark:border-neutral-800 flex items-center justify-center" title={record.preState.players.find(p => p.id === id)?.name}>
+                            <span className="text-[8px] font-black text-neutral-600 dark:text-neutral-400">{record.preState.players.find(p => p.id === id)?.name[0]}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
-                   <div className="text-xs text-neutral-400 font-bold mb-1">点数状況</div>
-                   <div className="flex gap-2">
-                     {record.postState.players.map(p => (
-                       <div key={p.id} className="text-[10px] font-black tabular-nums">
-                         {p.name[0]}: {p.score}
-                       </div>
-                     ))}
-                   </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                  {record.postState.players.map(p => {
+                    const diff = record.result.points?.[p.id] ?? 0;
+                    const riichiDiff = record.preState.players.find(preP => preP.id === p.id)?.isRiichi ? -1000 : 0;
+                    const totalDiff = diff + riichiDiff;
+                    return (
+                      <div key={p.id} className="bg-neutral-100/50 dark:bg-neutral-900/50 rounded-lg p-2 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700/50 transition-all">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-black text-neutral-400 truncate max-w-[60%]">{p.name}</span>
+                          <span className={`text-[10px] font-black tabular-nums ${totalDiff > 0 ? 'text-green-500' : totalDiff < 0 ? 'text-red-500' : 'text-neutral-400'}`}>
+                            {totalDiff > 0 ? `+${totalDiff.toLocaleString()}` : totalDiff < 0 ? totalDiff.toLocaleString() : '±0'}
+                          </span>
+                        </div>
+                        <div className="text-xs font-black text-neutral-700 dark:text-neutral-300 tabular-nums">
+                          {p.score.toLocaleString()}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))
