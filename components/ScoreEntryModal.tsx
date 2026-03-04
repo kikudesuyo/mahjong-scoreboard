@@ -9,9 +9,10 @@ interface ScoreEntryModalProps {
   onClose: () => void;
   gameState: GameState;
   onApply: (newState: GameState, result: any) => void;
+  initialWinnerId?: number | null;
 }
 
-export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }: ScoreEntryModalProps) {
+export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, initialWinnerId }: ScoreEntryModalProps) {
   const [winnerIds, setWinnerIds] = useState<number[]>([]);
   const [headBumpWinnerId, setHeadBumpWinnerId] = useState<number | null>(null);
   const [winType, setWinType] = useState<"tsumo" | "ron" | null>(null);
@@ -31,6 +32,23 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply }:
   const [selectedHan, setSelectedHan] = useState<number | string>(1);
   const [selectedFu, setSelectedFu] = useState<number>(30);
   const [selectedRole, setSelectedRole] = useState<WinRole>("ko");
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialWinnerId) {
+        setWinnerIds([initialWinnerId]);
+        setHeadBumpWinnerId(initialWinnerId);
+      } else {
+        setWinnerIds([]);
+        setHeadBumpWinnerId(null);
+      }
+      // Reset other states
+      setWinType(null);
+      setLoserId(null);
+      setRonPoints({});
+      setTsumoPayments({});
+    }
+  }, [isOpen, initialWinnerId]);
 
   const updatePointsFromTable = useCallback((role: WinRole, han: number | string, fu: number) => {
     let data: ScoreData | undefined;

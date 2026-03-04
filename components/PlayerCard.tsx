@@ -4,12 +4,13 @@ import { Player } from "@/lib/types";
 interface PlayerCardProps {
   player: Player;
   onRiichi: () => void;
+  onAgari: () => void;
   onSetDealer?: () => void;
   onChangeName: (newName: string) => void;
   canRiichi: boolean;
 }
 
-export default function PlayerCard({ player, onRiichi, onSetDealer, onChangeName, canRiichi }: PlayerCardProps) {
+export default function PlayerCard({ player, onRiichi, onAgari, onSetDealer, onChangeName, canRiichi }: PlayerCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(player.name);
 
@@ -82,17 +83,25 @@ export default function PlayerCard({ player, onRiichi, onSetDealer, onChangeName
           {player.score.toLocaleString()}
         </div>
         
-        <button
-          onClick={onRiichi}
-          disabled={!canRiichi}
-          className={`w-full py-2.5 text-sm font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-            player.isRiichi 
-              ? "bg-neutral-100 dark:bg-neutral-800 text-orange-600 border border-orange-500/30 hover:bg-neutral-200 dark:hover:bg-neutral-700" 
-              : "bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 hover:opacity-90 active:scale-95"
-          }`}
-        >
-          {player.isRiichi ? "立直取消" : "立直"}
-        </button>
+        <div className="flex flex-col gap-4">
+          <button
+            onClick={onRiichi}
+            disabled={!canRiichi}
+            className={`w-full py-2.5 text-sm font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+              player.isRiichi 
+                ? "bg-neutral-100 dark:bg-neutral-800 text-orange-600 border border-orange-500/30 hover:bg-neutral-200 dark:hover:bg-neutral-700" 
+                : "bg-neutral-200/50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+            }`}
+          >
+            {player.isRiichi ? "立直取消" : "立直"}
+          </button>
+          <button
+            onClick={onAgari}
+            className="w-full py-3 text-sm font-bold rounded-lg bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 hover:opacity-90 active:scale-95 transition-all shadow-sm"
+          >
+            和了
+          </button>
+        </div>
       </div>
     </div>
   );
