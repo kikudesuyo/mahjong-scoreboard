@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { GameState, INITIAL_STATE } from "@/lib/types";
 import Modal from "./Modal";
-import { scoresTable, limitScores, WinRole, ScoreData, ManganOrHigher, ScoreCalculationMode, SCORE_CALC_MODE, HAND_RESULT_TYPE, AGARI_TYPE } from "@/lib/mahjongScores";
+import { scoresTable, limitScores, WinRole, ScoreData, ManganOrHigher, ScoreCalculationMode, SCORE_CALC_MODE, HAND_RESULT_TYPE, AGARI_TYPE, WIN_ROLE, MANGAN_OR_HIGHER } from "@/lib/mahjongScores";
 import { HAN_OPTIONS, LIMIT_HANDS, FU_OPTIONS, DEFAULT_TSUMIBO } from "@/lib/constants";
 
 interface ScoreEntryModalProps {
@@ -28,10 +28,12 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
   const [tsumoHonbaPoints, setTsumoHonbaPoints] = useState<number>(0);
 
   // Score Table Selection State
-  const [selectedHan, setSelectedHan] = useState<number | ManganOrHigher | null>(null);
-  const [selectedFu, setSelectedFu] = useState<number | null | undefined>(null);
-  const [selectedRole, setSelectedRole] = useState<WinRole>("ko");
-  const [selectedMode, setSelectedMode] = useState<ScoreCalculationMode>(SCORE_CALC_MODE.FU_BASED);
+  const [selectedHan, setSelectedHan] = useState<number | null>(null);
+  const [selectedFu, setSelectedFu] = useState<number | null>(null);
+  const [selectedLimit, setSelectedLimit] = useState<ManganOrHigher | null>(null);
+  const [selectedRole, setSelectedRole] = useState<WinRole>(WIN_ROLE.KO);
+
+  const selectedMode = selectedLimit ? SCORE_CALC_MODE.LIMIT_BASED : SCORE_CALC_MODE.FU_BASED;
 
   useEffect(() => {
     if (isOpen) {
@@ -43,65 +45,58 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
       // Reset other states
       setWinType(null);
       setLoserId(null);
-      setRonPoints({});
-      setTsumoPayments({});
       setSelectedHan(null);
       setSelectedFu(null);
+      setSelectedLimit(null);
     }
   }, [isOpen, initialWinnerId]);
 
-  const updatePointsFromTable = useCallback((role: WinRole, han: number | ManganOrHigher | null, fu: number | null | undefined, mode: ScoreCalculationMode) => {
-    if (han === null) return;
-    
-    let data: ScoreData | undefined;
-    
-    if (mode === SCORE_CALC_MODE.LIMIT_BASED) {
-      data = limitScores[role]?.[han as ManganOrHigher];
-    } else {
-      if (fu === null) return;
-      data = scoresTable[role]?.[fu as number]?.[han as number];
+  const scoreData = useMemo(() => {
+    if (selectedLimit) {
+      return limitScores[selectedRole]?.[selectedLimit];
     }
+    if (selectedHan && selectedFu) {
+      return scoresTable[selectedRole]?.[selectedFu]?.[selectedHan];
+    }
+    return undefined;
+  }, [selectedRole, selectedHan, selectedFu, selectedLimit]);
 
-    if (!data) return;
+  const derivedRonPoints = useMemo(() => {
+    if (winType !== AGARI_TYPE.RON || !scoreData || winnerIds.length === 0) return {};
+    const points: Record<number, number> = {};
+    winnerIds.forEach(id => {
+      points[id] = scoreData.ron || 0;
+    });
+    return points;
+  }, [winType, scoreData, winnerIds]);
 
-    if (winType === AGARI_TYPE.RON) {
-      const newRonPoints: Record<number, number> = {};
-      winnerIds.forEach(wid => {
-        newRonPoints[wid] = data!.ron ?? 0;
-      });
-      setRonPoints(newRonPoints);
-    } else {
-      const newTsumoPayments: Record<number, number> = {};
-      gameState.players.filter(p => !winnerIds.includes(p.id)).forEach(p => {
-        if (role === "oya") {
-          newTsumoPayments[p.id] = data!.tsumo?.all || 0;
+  const derivedTsumoPayments = useMemo(() => {
+    if (winType !== AGARI_TYPE.TSUMO || !scoreData || winnerIds.length === 0) return {};
+    const payments: Record<number, number> = {};
+    const winnerId = winnerIds[0];
+    gameState.players.filter(p => !winnerIds.includes(p.id)).forEach(p => {
+      if (selectedRole === WIN_ROLE.OYA) {
+        payments[p.id] = scoreData.tsumo?.all || 0;
+      } else {
+        const dealerPlayer = gameState.players.find(pl => pl.isDealer);
+        if (p.id === dealerPlayer?.id) {
+          payments[p.id] = scoreData.tsumo?.oya || 0;
         } else {
-          const dealerPlayer = gameState.players.find(pl => pl.isDealer);
-          if (p.id === dealerPlayer?.id) {
-            newTsumoPayments[p.id] = data!.tsumo?.oya || 0;
-          } else {
-            newTsumoPayments[p.id] = data!.tsumo?.ko || 0;
-          }
+          payments[p.id] = scoreData.tsumo?.ko || 0;
         }
-      });
-      setTsumoPayments(newTsumoPayments);
-    }
-  }, [winType, winnerIds, gameState.players]);
+      }
+    });
+    return payments;
+  }, [winType, scoreData, winnerIds, gameState.players, selectedRole]);
 
   useEffect(() => {
     if (isOpen && winnerIds.length > 0) {
       const firstWinner = gameState.players.find(p => p.id === winnerIds[0]);
       if (firstWinner) {
-        setSelectedRole(firstWinner.isDealer ? "oya" : "ko");
+        setSelectedRole(firstWinner.isDealer ? WIN_ROLE.OYA : WIN_ROLE.KO);
       }
     }
   }, [isOpen, winnerIds, gameState.players]);
-
-  useEffect(() => {
-    if (isOpen && winnerIds.length > 0 && selectedHan !== null) {
-      updatePointsFromTable(selectedRole, selectedHan, selectedFu, selectedMode);
-    }
-  }, [isOpen, winnerIds, winType, selectedHan, selectedFu, selectedRole, selectedMode, updatePointsFromTable]);
 
   useEffect(() => {
     if (isOpen) {
@@ -120,13 +115,12 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
     
     if (type === AGARI_TYPE.RON && selectedFu === 20) {
       setSelectedFu(30);
-      updatePointsFromTable(selectedRole, selectedHan, 30, selectedMode);
     }
   };
 
   const handleApply = () => {
     if (winnerIds.length === 0) return alert("アガったプレイヤーを選択してください");
-    if (winType === AGARI_TYPE.TSUMO && Object.keys(tsumoPayments).length === 0) return alert("ツモの点数を入力してください");
+    if (winType === AGARI_TYPE.TSUMO && Object.keys(derivedTsumoPayments).length === 0) return alert("ツモの点数を入力してください");
     if (winType === AGARI_TYPE.RON && !loserId) return alert("放銃者を選択してください");
     if (winType === AGARI_TYPE.RON && winnerIds.includes(loserId!)) return alert("アガった人と放銃者は別にしてください");
 
@@ -143,7 +137,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
       
       newPlayers = newPlayers.map((p) => {
         if (p.id !== winnerId) {
-          const payment = (tsumoPayments[p.id] || 0) + honbaPaymentPerPlayer;
+          const payment = (derivedTsumoPayments[p.id] || 0) + honbaPaymentPerPlayer;
           totalClaimed += payment;
           return { ...p, score: p.score - payment };
         }
@@ -158,13 +152,13 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
       
       newPlayers = newPlayers.map((p) => {
         if (p.id === winnerId) {
-          const bPoints = ronPoints[p.id] || 0;
+          const bPoints = derivedRonPoints[p.id] || 0;
           return { ...p, score: p.score + bPoints + honbaPayment + kyotakuPoints };
         }
         return p;
       });
 
-      const totalLoserPayment = (ronPoints[winnerId] || 0) + honbaPayment;
+      const totalLoserPayment = (derivedRonPoints[winnerId] || 0) + honbaPayment;
       newPlayers = newPlayers.map((p) => 
         p.id === loserId ? { ...p, score: p.score - totalLoserPayment } : p
       );
@@ -181,10 +175,10 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
     const baseAgariPoints: Record<number, number> = {};
     if (winType === AGARI_TYPE.TSUMO) {
       const winnerId = winnerIds[0];
-      baseAgariPoints[winnerId] = Object.values(tsumoPayments).reduce((sum, val) => sum + val, 0);
+      baseAgariPoints[winnerId] = Object.values(derivedTsumoPayments).reduce((sum, val) => sum + val, 0);
     } else {
       winnerIds.forEach(wid => {
-        baseAgariPoints[wid] = ronPoints[wid] || 0;
+        baseAgariPoints[wid] = derivedRonPoints[wid] || 0;
       });
     }
 
@@ -198,8 +192,8 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
       agariType: winType as typeof AGARI_TYPE.TSUMO | typeof AGARI_TYPE.RON,
       winnerIds,
       loserId,
-      han: selectedHan,
-      fu: selectedFu,
+      han: selectedHan || selectedLimit,
+      fu: selectedFu || undefined,
       isOyaWin: isOyaWinner,
       points: pointDiffs,
       basePoints: baseAgariPoints
@@ -208,8 +202,9 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
     setWinnerIds([]);
     setWinType(null);
     setLoserId(null);
-    setRonPoints({});
-    setTsumoPayments({});
+    setSelectedHan(null);
+    setSelectedFu(null);
+    setSelectedLimit(null);
     onClose();
   };
 
@@ -217,7 +212,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
 
   const renderApplyButton = () => {
     const hasWinType = !!winType;
-    const hasScore = selectedHan !== null && (selectedMode === SCORE_CALC_MODE.LIMIT_BASED || selectedFu !== null);
+    const hasScore = !!scoreData;
     const hasLoser = winType === AGARI_TYPE.RON ? !!loserId : true;
     const isReady = hasWinType && hasScore && hasLoser;
 
@@ -285,10 +280,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
                           key={h}
                           onClick={() => { 
                             setSelectedHan(h); 
-                            const newFu = selectedFu || null;
-                            setSelectedFu(newFu);
-                            setSelectedMode(SCORE_CALC_MODE.FU_BASED);
-                            updatePointsFromTable(selectedRole, h, newFu, SCORE_CALC_MODE.FU_BASED); 
+                            setSelectedLimit(null);
                           }}
                           className={`py-2 text-sm font-bold rounded-lg transition-all ${selectedHan === h ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'}`}
                         >
@@ -304,12 +296,11 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
                         <button
                           key={h.id}
                           onClick={() => { 
-                            setSelectedHan(h.id as ManganOrHigher); 
-                            setSelectedFu(undefined);
-                            setSelectedMode(SCORE_CALC_MODE.LIMIT_BASED);
-                            updatePointsFromTable(selectedRole, h.id as ManganOrHigher, undefined, SCORE_CALC_MODE.LIMIT_BASED); 
+                            setSelectedLimit(h.id as ManganOrHigher); 
+                            setSelectedHan(null);
+                            setSelectedFu(null);
                           }}
-                          className={`py-2 text-[10px] font-black rounded-lg transition-all ${selectedHan === h.id ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'}`}
+                          className={`py-2 text-[10px] font-black rounded-lg transition-all ${selectedLimit === h.id ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'}`}
                         >
                           {h.label}
                         </button>
@@ -322,24 +313,24 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
                   <div>
                     <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest opacity-60">親 / 子</label>
                     <div className="grid grid-cols-2 gap-2">
-                      {(["ko", "oya"] as WinRole[]).map(r => (
+                      {([WIN_ROLE.KO, WIN_ROLE.OYA] as WinRole[]).map(r => (
                         <button
                           key={r}
-                          onClick={() => { setSelectedRole(r); updatePointsFromTable(r, selectedHan, selectedFu, selectedMode); }}
+                          onClick={() => { setSelectedRole(r); }}
                           className={`py-2 text-sm font-bold rounded-lg transition-all ${selectedRole === r ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'}`}
                         >
-                          {r === "oya" ? "親" : "子"}
+                          {r === WIN_ROLE.OYA ? "親" : "子"}
                         </button>
                       ))}
                     </div>
                   </div>
-                  {selectedHan !== null && selectedMode === SCORE_CALC_MODE.FU_BASED && (
+                  {selectedHan !== null && (
                     <div>
                       <label className="block text-[10px] font-black text-neutral-400 mb-2 uppercase tracking-widest opacity-60">符</label>
                       <div className="grid grid-cols-4 gap-2">
                         {FU_OPTIONS.map(f => {
                           const isApplicable = (() => {
-                            const data = scoresTable[selectedRole]?.[f]?.[selectedHan as number];
+                            const data = scoresTable[selectedRole]?.[f]?.[selectedHan];
                             if (!data) return false;
                             if (winType === AGARI_TYPE.TSUMO && !data.tsumo) return false;
                             if (winType === AGARI_TYPE.RON && data.ron === null) return false;
@@ -350,7 +341,7 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
                             <button
                               key={f}
                               disabled={!isApplicable}
-                              onClick={() => { setSelectedFu(f); updatePointsFromTable(selectedRole, selectedHan, f, selectedMode); }}
+                              onClick={() => { setSelectedFu(f); }}
                               className={`py-2 text-sm font-bold rounded-lg transition-all ${selectedFu === f ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white' : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-100'} disabled:opacity-10 disabled:cursor-not-allowed`}
                             >
                               {f}
@@ -364,14 +355,21 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
               </div>
 
               {(() => {
-                const data = selectedMode === SCORE_CALC_MODE.LIMIT_BASED ? limitScores[selectedRole]?.[selectedHan as ManganOrHigher] : (selectedFu ? scoresTable[selectedRole]?.[selectedFu]?.[selectedHan as number] : undefined);
-                if (!data) return (
+                if (!scoreData) return (
                   <div className="text-center pt-6 border-t border-neutral-100 dark:border-neutral-800">
                     <p className="text-neutral-400 italic">翻と符を選択してください</p>
                   </div>
                 );
-                const label = selectedMode === SCORE_CALC_MODE.LIMIT_BASED ? 
-                  { mangan: "満貫", haneman: "跳満", baiman: "倍満", sanbaiman: "三倍満", yakuman: "役満", double_yakuman: "二倍役満", triple_yakuman: "三倍役満" }[selectedHan as string] : 
+                const label = selectedLimit ? 
+                  { 
+                    [MANGAN_OR_HIGHER.MANGAN]: "満貫", 
+                    [MANGAN_OR_HIGHER.HANEMAN]: "跳満", 
+                    [MANGAN_OR_HIGHER.BAIMAN]: "倍満", 
+                    [MANGAN_OR_HIGHER.SANBAIMAN]: "三倍満", 
+                    [MANGAN_OR_HIGHER.YAKUMAN]: "役満", 
+                    [MANGAN_OR_HIGHER.DOUBLE_YAKUMAN]: "二倍役満", 
+                    [MANGAN_OR_HIGHER.TRIPLE_YAKUMAN]: "三倍役満" 
+                  }[selectedLimit] : 
                   `${selectedHan}翻${selectedFu}符`;
                 
                 return (
@@ -388,12 +386,12 @@ export default function ScoreEntryModal({ isOpen, onClose, gameState, onApply, i
                     </div>
                     <span className="text-5xl font-black text-neutral-800 dark:text-neutral-200 tabular-nums">
                       {winType === AGARI_TYPE.RON ? (
-                        data.ron === null ? "?" : `${data.ron.toLocaleString()}`
+                        scoreData.ron === null ? "?" : `${scoreData.ron.toLocaleString()}`
                       ) : (
-                        selectedRole === "oya" ? (
-                          `${data.tsumo?.all?.toLocaleString()} all`
+                        selectedRole === WIN_ROLE.OYA ? (
+                          `${scoreData.tsumo?.all?.toLocaleString()} all`
                         ) : (
-                          `${data.tsumo?.ko?.toLocaleString()} / ${data.tsumo?.oya?.toLocaleString()}`
+                          `${scoreData.tsumo?.ko?.toLocaleString()} / ${scoreData.tsumo?.oya?.toLocaleString()}`
                         )
                       )}
                     </span>

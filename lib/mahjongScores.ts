@@ -1,4 +1,9 @@
-export type WinRole = "oya" | "ko";
+export const WIN_ROLE = {
+  OYA: "oya",
+  KO: "ko",
+} as const;
+
+export type WinRole = typeof WIN_ROLE[keyof typeof WIN_ROLE];
 
 export interface ScoreData {
   ron: number | null;
@@ -140,14 +145,17 @@ export const scoresTable: Record<WinRole, Record<number, Record<number, ScoreDat
   },
 };
 
-export type ManganOrHigher =
-  | "mangan"
-  | "haneman"
-  | "baiman"
-  | "sanbaiman"
-  | "yakuman"
-  | "double_yakuman"
-  | "triple_yakuman";
+export const MANGAN_OR_HIGHER = {
+  MANGAN: "mangan",
+  HANEMAN: "haneman",
+  BAIMAN: "baiman",
+  SANBAIMAN: "sanbaiman",
+  YAKUMAN: "yakuman",
+  DOUBLE_YAKUMAN: "double_yakuman",
+  TRIPLE_YAKUMAN: "triple_yakuman",
+} as const;
+
+export type ManganOrHigher = typeof MANGAN_OR_HIGHER[keyof typeof MANGAN_OR_HIGHER];
 
 export const limitScores: Record<WinRole, Record<ManganOrHigher, ScoreData>> = {
   ko: {

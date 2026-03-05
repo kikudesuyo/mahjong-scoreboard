@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import Modal from "./Modal";
 import { GameState, HandResult } from "../lib/types";
-import { WinRole, scoresTable, limitScores, ManganOrHigher, ScoreCalculationMode, SCORE_CALC_MODE, HAND_RESULT_TYPE, AGARI_TYPE } from "../lib/mahjongScores";
+import { WinRole, scoresTable, limitScores, ManganOrHigher, ScoreCalculationMode, SCORE_CALC_MODE, HAND_RESULT_TYPE, AGARI_TYPE, WIN_ROLE, MANGAN_OR_HIGHER } from "../lib/mahjongScores";
 import { HAN_OPTIONS, FU_OPTIONS, LIMIT_HANDS, DEFAULT_TSUMIBO } from "../lib/constants";
 
 interface MultiRonModalProps {
@@ -27,7 +27,7 @@ export default function MultiRonModal({ isOpen, onClose, gameState, onApply }: M
       // Sync winnerScores
       const newScores = { ...winnerScores };
       if (!prev.includes(id)) {
-        newScores[id] = { han: null, fu: null, role: gameState.players.find(p => p.id === id)?.isDealer ? "oya" : "ko", mode: SCORE_CALC_MODE.FU_BASED };
+        newScores[id] = { han: null, fu: null, role: gameState.players.find(p => p.id === id)?.isDealer ? WIN_ROLE.OYA : WIN_ROLE.KO, mode: SCORE_CALC_MODE.FU_BASED };
       } else {
         delete newScores[id];
       }

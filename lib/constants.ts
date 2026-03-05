@@ -1,3 +1,5 @@
+import { MANGAN_OR_HIGHER } from "./mahjongScores";
+
 export const STARTING_SCORE_3P = 35000;
 export const STARTING_SCORE_4P = 25000;
 export const TOTAL_GAME_SCORE_3P = 105000;
@@ -21,11 +23,25 @@ export const RYUUKYOKU_TOTAL_POINTS_MAP: Record<number, number> = {
 };
 
 export const LIMIT_HANDS = [
-  { id: "mangan", label: "満貫" },
-  { id: "haneman", label: "跳満" },
-  { id: "baiman", label: "倍満" },
-  { id: "sanbaiman", label: "三倍満" },
-  { id: "yakuman", label: "役満" },
-  {id:"double_yakuman", label:"二倍役満"},
-  {id:"triple_yakuman", label:"三倍役満"}
+  { id: MANGAN_OR_HIGHER.MANGAN, label: "満貫" },
+  { id: MANGAN_OR_HIGHER.HANEMAN, label: "跳満" },
+  { id: MANGAN_OR_HIGHER.BAIMAN, label: "倍満" },
+  { id: MANGAN_OR_HIGHER.SANBAIMAN, label: "三倍満" },
+  { id: MANGAN_OR_HIGHER.YAKUMAN, label: "役満" },
+  { id: MANGAN_OR_HIGHER.DOUBLE_YAKUMAN, label: "二倍役満" },
+  { id: MANGAN_OR_HIGHER.TRIPLE_YAKUMAN, label: "三倍役満" }
 ];
+
+export const LOCAL_STORAGE_KEYS = {
+  STATE: "mahjong_state",
+  HISTORY: "mahjong_history",
+  HAND_RECORDS: "mahjong_hand_records",
+  SETUP: "mahjong_setup",
+} as const;
+
+export const TRACKER_TABS = {
+  SCOREBOARD: "scoreboard",
+  STATS: "stats",
+} as const;
+
+export type TrackerTab = typeof TRACKER_TABS[keyof typeof TRACKER_TABS];

@@ -1,7 +1,7 @@
 "use client";
 
 import { HandRecord, PlayerStats } from "@/lib/types";
-import { HAND_RESULT_TYPE, AGARI_TYPE } from "@/lib/mahjongScores";
+import { HAND_RESULT_TYPE, AGARI_TYPE, MANGAN_OR_HIGHER } from "@/lib/mahjongScores";
 import ScoreChart from "./ScoreChart";
 
 interface StatsViewProps {
@@ -167,7 +167,15 @@ export default function StatsView({ handRecords }: StatsViewProps) {
                           <>
                             {typeof record.result.han === "number" 
                               ? `${record.result.han}翻` 
-                              : { mangan: "満貫", haneman: "跳満", baiman: "倍満", sanbaiman: "三倍満", yakuman: "役満", double_yakuman: "ダブル役満", triple_yakuman: "トリプル役満" }[record.result.han as string] || record.result.han}
+                              : { 
+                                  [MANGAN_OR_HIGHER.MANGAN]: "満貫", 
+                                  [MANGAN_OR_HIGHER.HANEMAN]: "跳満", 
+                                  [MANGAN_OR_HIGHER.BAIMAN]: "倍満", 
+                                  [MANGAN_OR_HIGHER.SANBAIMAN]: "三倍満", 
+                                  [MANGAN_OR_HIGHER.YAKUMAN]: "役満", 
+                                  [MANGAN_OR_HIGHER.DOUBLE_YAKUMAN]: "ダブル役満", 
+                                  [MANGAN_OR_HIGHER.TRIPLE_YAKUMAN]: "トリプル役満" 
+                                }[record.result.han as string] || record.result.han}
                             {record.result.fu && ` ${record.result.fu}符`}
                           </>
                         ) : "-"}

@@ -1,4 +1,5 @@
 import { STARTING_SCORE_3P, TOTAL_GAME_SCORE_3P, TOTAL_GAME_SCORE_4P, DEFAULT_TSUMIBO, DEFAULT_PLAYER_COUNT } from "./constants";
+import { HAND_RESULT_TYPE, AGARI_TYPE } from "./mahjongScores";
 
 export type Player = {
   id: number;
@@ -43,7 +44,6 @@ export function validateInvariant(state: GameState): boolean {
   return total === expectedTotal;
 }
 
-import { HAND_RESULT_TYPE, AGARI_TYPE } from "./mahjongScores";
 
 export type HandResult = {
   type: typeof HAND_RESULT_TYPE[keyof typeof HAND_RESULT_TYPE];
