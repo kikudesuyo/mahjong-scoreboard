@@ -1,6 +1,7 @@
 "use client";
 
 import { HandRecord, PlayerStats } from "@/lib/types";
+import { HAND_RESULT_TYPE, AGARI_TYPE, MANGAN_OR_HIGHER } from "@/lib/mahjongScores";
 import ScoreChart from "./ScoreChart";
 
 interface StatsViewProps {
@@ -35,8 +36,8 @@ export default function StatsView({ handRecords }: StatsViewProps) {
     handRecords.forEach(record => {
       const { result, preState } = record;
       
-      // Multi-winner Ron handles multiple winner increases
-      if (result.winnerIds) {
+      // Multi-winner Ron/Tsumo handles multiple winner increases
+      if (result.type === HAND_RESULT_TYPE.AGARI && result.winnerIds) {
         result.winnerIds.forEach(id => {
           if (statsMap[id]) {
             statsMap[id].agariCount++;
@@ -54,7 +55,7 @@ export default function StatsView({ handRecords }: StatsViewProps) {
       }
 
       // Track tenpai for ryuukyoku (winnerIds contains tenpai players in ryuukyoku result)
-      if (result.type === "ryuukyoku" && result.winnerIds) {
+      if (result.type === HAND_RESULT_TYPE.RYUUKYOKU && result.winnerIds) {
         result.winnerIds.forEach(id => {
           if (statsMap[id]) {
             statsMap[id].tenpaiCount++;
@@ -133,14 +134,14 @@ export default function StatsView({ handRecords }: StatsViewProps) {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${
-                        record.result.type === 'tsumo' ? 'bg-orange-500 text-white' :
-                        record.result.type === 'ron' ? 'bg-red-500 text-white' :
-                        record.result.type === 'ryuukyoku' ? 'bg-neutral-500 text-white' :
+                        record.result.type === HAND_RESULT_TYPE.AGARI && record.result.agariType === AGARI_TYPE.TSUMO ? 'bg-orange-500 text-white' :
+                        record.result.type === HAND_RESULT_TYPE.AGARI && record.result.agariType === AGARI_TYPE.RON ? 'bg-red-500 text-white' :
+                        record.result.type === HAND_RESULT_TYPE.RYUUKYOKU ? 'bg-neutral-500 text-white' :
                         'bg-neutral-100 dark:bg-neutral-700 text-neutral-500'
                       }`}>
-                        {record.result.type === "ryuukyoku" ? "流局" : 
-                         record.result.type === "ron" ? "ロン" : 
-                         record.result.type === "tsumo" ? "ツモ" : 
+                        {record.result.type === HAND_RESULT_TYPE.RYUUKYOKU ? "流局" : 
+                         record.result.type === HAND_RESULT_TYPE.AGARI && record.result.agariType === AGARI_TYPE.RON ? "ロン" : 
+                         record.result.type === HAND_RESULT_TYPE.AGARI && record.result.agariType === AGARI_TYPE.TSUMO ? "ツモ" : 
                          "修正"}
                       </span>
                       {record.result.honba !== undefined && record.result.honba > 0 && (
@@ -149,14 +150,14 @@ export default function StatsView({ handRecords }: StatsViewProps) {
                         </span>
                       )}
                       <span className="font-black text-lg ml-1">
-                        {record.result.type === "ron" && record.result.loserId ? (
+                        {record.result.type === HAND_RESULT_TYPE.AGARI && record.result.agariType === AGARI_TYPE.RON && record.result.loserId ? (
                           <span className="flex items-center gap-2">
                             <span>{record.result.winnerIds?.map(id => record.preState.players.find(p => p.id === id)?.name).join(' ・ ')}</span>
                             <span className="text-neutral-300">→</span>
                             <span className="text-neutral-500">{record.preState.players.find(p => p.id === record.result.loserId)?.name}</span>
                           </span>
                         ) : (
-                          record.result.winnerIds?.map(id => record.preState.players.find(p => p.id === id)?.name).join(' ・ ') || (record.result.type === "ryuukyoku" ? "全員" : "（なし）")
+                          record.result.winnerIds?.map(id => record.preState.players.find(p => p.id === id)?.name).join(' ・ ') || (record.result.type === HAND_RESULT_TYPE.RYUUKYOKU ? "全員" : "（なし）")
                         )}
                       </span>
                     </div>
@@ -166,7 +167,15 @@ export default function StatsView({ handRecords }: StatsViewProps) {
                           <>
                             {typeof record.result.han === "number" 
                               ? `${record.result.han}翻` 
-                              : { mangan: "満貫", haneman: "跳満", baiman: "倍満", sanbaiman: "三倍満", yakuman: "役満", double_yakuman: "ダブル役満", triple_yakuman: "トリプル役満" }[record.result.han as string] || record.result.han}
+                              : { 
+                                  [MANGAN_OR_HIGHER.MANGAN]: "満貫", 
+                                  [MANGAN_OR_HIGHER.HANEMAN]: "跳満", 
+                                  [MANGAN_OR_HIGHER.BAIMAN]: "倍満", 
+                                  [MANGAN_OR_HIGHER.SANBAIMAN]: "三倍満", 
+                                  [MANGAN_OR_HIGHER.YAKUMAN]: "役満", 
+                                  [MANGAN_OR_HIGHER.DOUBLE_YAKUMAN]: "ダブル役満", 
+                                  [MANGAN_OR_HIGHER.TRIPLE_YAKUMAN]: "トリプル役満" 
+                                }[record.result.han as string] || record.result.han}
                             {record.result.fu && ` ${record.result.fu}符`}
                           </>
                         ) : "-"}

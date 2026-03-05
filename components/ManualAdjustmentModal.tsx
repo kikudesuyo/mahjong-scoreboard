@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { GameState } from "@/lib/types";
+import { HAND_RESULT_TYPE } from "@/lib/mahjongScores";
 import { TOTAL_GAME_SCORE_3P, TOTAL_GAME_SCORE_4P } from "@/lib/constants";
 import Modal from "./Modal";
 import NumberInput from "./NumberInput";
@@ -42,7 +43,7 @@ export default function ManualAdjustmentModal({ isOpen, onClose, gameState, onAp
       kyotaku: kyotaku,
       rules: gameState.rules
     }, {
-      type: "manual",
+      type: HAND_RESULT_TYPE.MANUAL,
       points: pointDiffs
     });
     

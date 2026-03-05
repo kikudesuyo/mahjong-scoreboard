@@ -1,4 +1,5 @@
 import { STARTING_SCORE_3P, TOTAL_GAME_SCORE_3P, TOTAL_GAME_SCORE_4P, DEFAULT_TSUMIBO, DEFAULT_PLAYER_COUNT } from "./constants";
+import { HAND_RESULT_TYPE, AGARI_TYPE } from "./mahjongScores";
 
 export type Player = {
   id: number;
@@ -43,8 +44,10 @@ export function validateInvariant(state: GameState): boolean {
   return total === expectedTotal;
 }
 
+
 export type HandResult = {
-  type: "tsumo" | "ron" | "ryuukyoku" | "manual";
+  type: typeof HAND_RESULT_TYPE[keyof typeof HAND_RESULT_TYPE];
+  agariType?: typeof AGARI_TYPE[keyof typeof AGARI_TYPE];
   winnerIds?: number[];
   loserId?: number | null;
   points?: Record<number, number>; // Total points gained/lost per player (including Honba/Kyotaku)

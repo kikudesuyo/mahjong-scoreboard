@@ -2,6 +2,7 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { HandRecord } from "@/lib/types";
+import { HAND_RESULT_TYPE } from "@/lib/mahjongScores";
 
 interface ScoreChartProps {
   handRecords: HandRecord[];
@@ -34,7 +35,7 @@ export default function ScoreChart({ handRecords }: ScoreChartProps) {
   handRecords.forEach((record, idx) => {
     // If it's a manual adjustment, insert a NARROW break point before the new data
     // idx + 0.9 creates a 0.1 unit gap right before the next hand (idx + 1)
-    if (record.result.type === "manual") {
+    if (record.result.type === HAND_RESULT_TYPE.MANUAL) {
       const breakPoint = {
         index: idx + 0.98,
         isBreak: true,

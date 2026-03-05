@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { GameState, INITIAL_STATE,  HandRecord, HandResult } from "@/lib/types";
-import { STARTING_SCORE_3P, STARTING_SCORE_4P, TSUMIBO_OPTIONS_MAP, PLAYER_COUNT_OPTIONS } from "@/lib/constants";
+import { STARTING_SCORE_3P, STARTING_SCORE_4P, TSUMIBO_OPTIONS_MAP, PLAYER_COUNT_OPTIONS, LOCAL_STORAGE_KEYS, TRACKER_TABS, TrackerTab } from "@/lib/constants";
+import { HAND_RESULT_TYPE, WIN_ROLE } from "@/lib/mahjongScores";
 import PlayerCard from "./PlayerCard";
 import ScoreEntryModal from "./ScoreEntryModal";
 import RyuukyokuModal from "./RyuukyokuModal";
 import ManualAdjustmentModal from "./ManualAdjustmentModal";
+import MultiRonModal from "./MultiRonModal";
 import StatsView from "./StatsView";
 
 export default function MahjongTracker() {
@@ -17,16 +19,17 @@ export default function MahjongTracker() {
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [setupNames, setSetupNames] = useState(["", "", ""]);
   const [setupRules, setSetupRules] = useState(INITIAL_STATE.rules);
-  const [activeTab, setActiveTab] = useState<"scoreboard" | "stats">("scoreboard");
+  const [activeTab, setActiveTab] = useState<TrackerTab>(TRACKER_TABS.SCOREBOARD);
   
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
   const [selectedWinnerId, setSelectedWinnerId] = useState<number | null>(null);
   const [isRyuukyokuModalOpen, setIsRyuukyokuModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [isMultiRonModalOpen, setIsMultiRonModalOpen] = useState(false);
 
     // Load from localStorage on mount
     useEffect(() => {
-      const savedState = localStorage.getItem("mahjong_state");
+      const savedState = localStorage.getItem(LOCAL_STORAGE_KEYS.STATE);
       if (savedState) {
         try {
           const parsed = JSON.parse(savedState);
@@ -39,7 +42,7 @@ export default function MahjongTracker() {
           console.error("Failed to parse saved state", e);
         }
       }
-    const savedHistory = localStorage.getItem("mahjong_history");
+    const savedHistory = localStorage.getItem(LOCAL_STORAGE_KEYS.HISTORY);
     if (savedHistory) {
       try {
         setHistory(JSON.parse(savedHistory));
@@ -47,15 +50,30 @@ export default function MahjongTracker() {
         console.error("Failed to parse saved history", e);
       }
     }
-    const savedHandRecords = localStorage.getItem("mahjong_hand_records");
+    const savedHandRecords = localStorage.getItem(LOCAL_STORAGE_KEYS.HAND_RECORDS);
     if (savedHandRecords) {
       try {
-        setHandRecords(JSON.parse(savedHandRecords));
+        const parsed = JSON.parse(savedHandRecords);
+        // Migration: Convert old flattened type to new Agari structure
+        const migrated = parsed.map((record: any) => {
+          if (record.result.type === "tsumo" || record.result.type === "ron") {
+            return {
+              ...record,
+              result: {
+                ...record.result,
+                type: HAND_RESULT_TYPE.AGARI,
+                agariType: record.result.type
+              }
+            };
+          }
+          return record;
+        });
+        setHandRecords(migrated);
       } catch (e) {
         console.error("Failed to parse saved hand records", e);
       }
     }
-    const savedSetup = localStorage.getItem("mahjong_setup");
+    const savedSetup = localStorage.getItem(LOCAL_STORAGE_KEYS.SETUP);
     if (savedSetup === "true") {
       setIsSetupComplete(true);
     }
@@ -65,10 +83,10 @@ export default function MahjongTracker() {
   // Save to localStorage whenever state changes
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("mahjong_state", JSON.stringify(currentState));
-      localStorage.setItem("mahjong_history", JSON.stringify(history));
-      localStorage.setItem("mahjong_hand_records", JSON.stringify(handRecords));
-      localStorage.setItem("mahjong_setup", isSetupComplete.toString());
+      localStorage.setItem(LOCAL_STORAGE_KEYS.STATE, JSON.stringify(currentState));
+      localStorage.setItem(LOCAL_STORAGE_KEYS.HISTORY, JSON.stringify(history));
+      localStorage.setItem(LOCAL_STORAGE_KEYS.HAND_RECORDS, JSON.stringify(handRecords));
+      localStorage.setItem(LOCAL_STORAGE_KEYS.SETUP, isSetupComplete.toString());
     }
   }, [currentState, history, handRecords, isLoaded, isSetupComplete]);
 
@@ -81,7 +99,10 @@ export default function MahjongTracker() {
     }
 
     // Clear riichi status only when a hand actually ends (agari/ryuukyoku)
-    const shouldClearRiichi = result && ["tsumo", "ron", "ryuukyoku"].includes(result.type);
+    const shouldClearRiichi = result && (
+      result.type === HAND_RESULT_TYPE.AGARI || 
+      result.type === HAND_RESULT_TYPE.RYUUKYOKU
+    );
     const finalState = { 
       ...newState, 
       players: shouldClearRiichi 
@@ -152,9 +173,10 @@ export default function MahjongTracker() {
       setIsSetupComplete(false);
       setSetupNames(["", "", ""]);
       setSetupRules(INITIAL_STATE.rules);
-      localStorage.removeItem("mahjong_state");
-      localStorage.removeItem("mahjong_history");
-      localStorage.removeItem("mahjong_setup");
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.STATE);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.HISTORY);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.HAND_RECORDS);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.SETUP);
     }
   };
 
@@ -340,20 +362,20 @@ export default function MahjongTracker() {
       {/* Tab Navigation */}
       <div className="flex p-1 bg-neutral-100 dark:bg-neutral-900/50 rounded-2xl w-fit mx-auto border border-neutral-200 dark:border-neutral-800">
         <button 
-          onClick={() => setActiveTab("scoreboard")}
-          className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all ${activeTab === "scoreboard" ? "bg-white dark:bg-neutral-800 text-orange-600 shadow-sm" : "text-neutral-400 hover:text-neutral-600"}`}
+          onClick={() => setActiveTab(TRACKER_TABS.SCOREBOARD)}
+          className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all ${activeTab === TRACKER_TABS.SCOREBOARD ? "bg-white dark:bg-neutral-800 text-orange-600 shadow-sm" : "text-neutral-400 hover:text-neutral-600"}`}
         >
           スコアボード
         </button>
         <button 
-          onClick={() => setActiveTab("stats")}
-          className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all ${activeTab === "stats" ? "bg-white dark:bg-neutral-800 text-orange-600 shadow-sm" : "text-neutral-400 hover:text-neutral-600"}`}
+          onClick={() => setActiveTab(TRACKER_TABS.STATS)}
+          className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all ${activeTab === TRACKER_TABS.STATS ? "bg-white dark:bg-neutral-800 text-orange-600 shadow-sm" : "text-neutral-400 hover:text-neutral-600"}`}
         >
           記録・スタッツ
         </button>
       </div>
 
-      {activeTab === "stats" ? (
+      {activeTab === TRACKER_TABS.STATS ? (
         <StatsView handRecords={handRecords} />
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -429,6 +451,12 @@ export default function MahjongTracker() {
               手動修正
             </button>
             <button 
+              onClick={() => setIsMultiRonModalOpen(true)}
+              className="px-6 py-3.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl transition-all active:scale-95"
+            >
+              複数ロン
+            </button>
+            <button 
               onClick={undo}
               disabled={history.length === 0}
               className="px-6 py-3.5 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-400 dark:text-neutral-600 font-bold rounded-xl border border-transparent disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -471,6 +499,13 @@ export default function MahjongTracker() {
         onClose={() => setIsManualModalOpen(false)} 
         gameState={currentState} 
         onApply={applyStateUpdate} 
+      />
+
+      <MultiRonModal
+        isOpen={isMultiRonModalOpen}
+        onClose={() => setIsMultiRonModalOpen(false)}
+        gameState={currentState}
+        onApply={applyStateUpdate}
       />
     </div>
   );

@@ -5,9 +5,11 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  footer?: ReactNode;
+  maxWidth?: string;
 }
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, footer, maxWidth = "max-w-2xl" }: ModalProps) {
   // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -22,7 +24,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 transition-opacity">
       <div 
-        className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg w-full max-w-2xl overflow-hidden"
+        className={`bg-white dark:bg-neutral-800 rounded-2xl shadow-lg w-full ${maxWidth} overflow-hidden flex flex-col max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-4 border-b border-neutral-200 dark:border-neutral-700">
@@ -34,9 +36,14 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
-        <div className="p-4 max-h-[80vh] overflow-y-auto">
+        <div className="p-4 overflow-y-auto flex-1">
           {children}
         </div>
+        {footer && (
+          <div className="p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
