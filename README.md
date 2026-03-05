@@ -40,5 +40,5 @@ vercel login
 3. デプロイ
 
 ```bash
-vercel --prod --confirm --name mahjong-scoreboard-management
+vercel --prod --yes --name mahjong-scoreboard-management
 ```
